@@ -1,0 +1,27 @@
+{
+  "name": "saloniq",
+  "private": true,
+  "packageManager": "pnpm@8.15.4",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:web": "pnpm --filter saloniq-web dev",
+    "dev:api": "pnpm --filter saloniq-api start:dev",
+    "build:web": "pnpm --filter saloniq-web build",
+    "build:api": "pnpm --filter saloniq-api build",
+    "lint": "pnpm -r lint",
+    "format": "prettier . --write",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
+    "eslint": "^8.56.0",
+    "eslint-config-next": "^14.2.0",
+    "husky": "^9.0.0",
+    "lint-staged": "^15.2.0",
+    "prettier": "^3.2.5"
+  }
+}
