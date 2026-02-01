@@ -4,7 +4,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "File Manager",
-  description: "Manage your kitchen documentation and files.",
+  description: "Manage your salon's documentation and files.",
   // other metadata
 };
 

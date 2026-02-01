@@ -4,9 +4,10 @@ import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as bcrypt from "bcrypt";
 import { createHash, randomBytes } from "crypto";
-import { EntityManager, IsNull, Repository } from "typeorm";
+import { EntityManager, In, IsNull, Repository } from "typeorm";
 import { Membership } from "../identity/entities/membership.entity";
 import { Org } from "../identity/entities/org.entity";
+import { Permission } from "../identity/entities/permission.entity";
 import { Role } from "../identity/entities/role.entity";
 import { RolePermission } from "../identity/entities/role-permission.entity";
 import { User } from "../identity/entities/user.entity";
@@ -44,6 +45,8 @@ export class AuthService {
     private readonly membershipRepo: Repository<Membership>,
     @InjectRepository(RolePermission)
     private readonly rolePermissionRepo: Repository<RolePermission>,
+    @InjectRepository(Permission)
+    private readonly permissionRepo: Repository<Permission>,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepo: Repository<RefreshToken>,
   ) {}
@@ -93,6 +96,8 @@ export class AuthService {
       const roleRepo = manager.withRepository(this.roleRepo);
       const userRepo = manager.withRepository(this.userRepo);
       const membershipRepo = manager.withRepository(this.membershipRepo);
+      const permissionRepo = manager.withRepository(this.permissionRepo);
+      const rolePermissionRepo = manager.withRepository(this.rolePermissionRepo);
 
       const slug = await this.createUniqueSlug(orgName, orgRepo);
       const org = orgRepo.create({ name: orgName, slug });
@@ -108,6 +113,21 @@ export class AuthService {
         isSystem: true,
       });
       await roleRepo.save(role);
+
+      // Grant all file permissions to the Owner role
+      const filePermissions = await permissionRepo.find({
+        where: {
+          key: In(["files:read", "files:write", "files:upload", "files:delete"]),
+        },
+      });
+
+      for (const permission of filePermissions) {
+        const rolePermission = rolePermissionRepo.create({
+          roleId: role.id,
+          permissionId: permission.id,
+        });
+        await rolePermissionRepo.save(rolePermission);
+      }
 
       const membership = membershipRepo.create({
         orgId: org.id,

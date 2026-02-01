@@ -9,6 +9,7 @@ import { PermissionsGuard } from "./guards/permissions.guard";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { IdentityModule } from "../identity/identity.module";
+import { Permission } from "../identity/entities/permission.entity";
 import { RefreshToken } from "./entities/refresh-token.entity";
 
 @Module({
@@ -16,7 +17,7 @@ import { RefreshToken } from "./entities/refresh-token.entity";
     ConfigModule,
     IdentityModule,
     PassportModule,
-    TypeOrmModule.forFeature([RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken, Permission]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

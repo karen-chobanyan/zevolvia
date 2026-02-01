@@ -4,9 +4,11 @@ import { AppDataSource } from "./data-source";
 import { MembershipStatus } from "../common/enums";
 import { Membership } from "../modules/identity/entities/membership.entity";
 import { Org } from "../modules/identity/entities/org.entity";
+import { Permission } from "../modules/identity/entities/permission.entity";
 import { Role } from "../modules/identity/entities/role.entity";
+import { RolePermission } from "../modules/identity/entities/role-permission.entity";
 import { User } from "../modules/identity/entities/user.entity";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 
 async function createUniqueSlug(name: string, orgRepo: Repository<Org>): Promise<string> {
   const base =
@@ -39,6 +41,8 @@ async function seed() {
   const userRepo = AppDataSource.getRepository(User);
   const roleRepo = AppDataSource.getRepository(Role);
   const membershipRepo = AppDataSource.getRepository(Membership);
+  const permissionRepo = AppDataSource.getRepository(Permission);
+  const rolePermissionRepo = AppDataSource.getRepository(RolePermission);
 
   const email = (process.env.SEED_EMAIL || "owner@saloniq.ai").trim().toLowerCase();
   const password = process.env.SEED_PASSWORD || "ChangeMe123!";
@@ -69,6 +73,21 @@ async function seed() {
       isSystem: true,
     });
     await roleRepo.save(role);
+
+    // Grant all file permissions to the Owner role
+    const filePermissions = await permissionRepo.find({
+      where: {
+        key: In(["files:read", "files:write", "files:upload", "files:delete"]),
+      },
+    });
+
+    for (const permission of filePermissions) {
+      const rolePermission = rolePermissionRepo.create({
+        roleId: role.id,
+        permissionId: permission.id,
+      });
+      await rolePermissionRepo.save(rolePermission);
+    }
 
     const membership = membershipRepo.create({
       orgId: org.id,
