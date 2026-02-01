@@ -1,0 +1,59 @@
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: saloniq
+    ports:
+      - "5432:5432"
+    volumes:
+      - saloniq_db:/var/lib/postgresql/data
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: saloniq
+      JWT_SECRET: dev-secret
+      JWT_EXPIRES_IN: 15m
+      WEB_ORIGIN: http://localhost:3000
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - api_node_modules:/app/apps/api/node_modules
+    command: sh -c "pnpm install && pnpm --filter saloniq-api start:dev"
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:3001/api
+      NEXT_TELEMETRY_DISABLED: 1
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - web_node_modules:/app/apps/web/node_modules
+    command: sh -c "pnpm install && pnpm --filter saloniq-web dev -- --hostname 0.0.0.0 --port 3000"
+
+volumes:
+  saloniq_db:
+  node_modules:
+  api_node_modules:
+  web_node_modules:
