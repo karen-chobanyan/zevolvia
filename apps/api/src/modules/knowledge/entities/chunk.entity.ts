@@ -8,24 +8,24 @@ import { Embedding } from "./embedding.entity";
 @Index(["orgId"])
 export class Chunk extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })
-  orgId: string;
+  orgId!: string;
 
   @Column({ name: "document_id", type: "uuid" })
-  documentId: string;
+  documentId!: string;
 
   @ManyToOne(() => Document, { onDelete: "CASCADE" })
   @JoinColumn({ name: "document_id" })
-  document: Document;
+  document!: Document;
 
   @Column({ type: "int" })
-  idx: number;
+  idx!: number;
 
   @Column({ type: "text" })
-  content: string;
+  content!: string;
 
   @Column({ type: "int", nullable: true })
-  tokens: number | null;
+  tokens!: number | null;
 
   @OneToOne(() => Embedding, (embedding) => embedding.chunk)
-  embedding: Embedding;
+  embedding!: Embedding;
 }

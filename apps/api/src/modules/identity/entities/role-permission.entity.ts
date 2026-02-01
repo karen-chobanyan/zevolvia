@@ -6,18 +6,18 @@ import { Role } from "./role.entity";
 @Unique(["roleId", "permissionId"])
 export class RolePermission {
   @PrimaryColumn({ name: "role_id", type: "uuid" })
-  roleId: string;
+  roleId!: string;
 
   @PrimaryColumn({ name: "permission_id", type: "uuid" })
-  permissionId: string;
+  permissionId!: string;
 
   @ManyToOne(() => Role, (role) => role.rolePermissions, { onDelete: "CASCADE" })
   @JoinColumn({ name: "role_id" })
-  role: Role;
+  role!: Role;
 
   @ManyToOne(() => Permission, (permission) => permission.rolePermissions, {
     onDelete: "CASCADE",
   })
   @JoinColumn({ name: "permission_id" })
-  permission: Permission;
+  permission!: Permission;
 }

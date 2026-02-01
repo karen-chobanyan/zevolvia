@@ -7,7 +7,10 @@ RUN corepack enable \
 
 WORKDIR /app
 
+ENV HUSKY=0
+
 COPY package.json pnpm-workspace.yaml ./
+COPY .npmrc .npmrc
 COPY apps/api/package.json apps/api/package.json
 
 RUN pnpm install --filter saloniq-api

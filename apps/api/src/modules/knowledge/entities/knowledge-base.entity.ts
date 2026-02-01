@@ -7,15 +7,15 @@ import { Document } from "./document.entity";
 @Index(["orgId", "name"], { unique: true })
 export class KnowledgeBase extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })
-  orgId: string;
+  orgId!: string;
 
   @ManyToOne(() => Org, { onDelete: "CASCADE" })
   @JoinColumn({ name: "org_id" })
-  org: Org;
+  org!: Org;
 
   @Column({ type: "text" })
-  name: string;
+  name!: string;
 
   @OneToMany(() => Document, (document) => document.knowledgeBase)
-  documents: Document[];
+  documents!: Document[];
 }

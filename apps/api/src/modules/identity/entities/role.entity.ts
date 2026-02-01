@@ -7,21 +7,21 @@ import { RolePermission } from "./role-permission.entity";
 @Index(["orgId", "name"], { unique: true })
 export class Role extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })
-  orgId: string;
+  orgId!: string;
 
   @ManyToOne(() => Org, (org) => org.roles, { onDelete: "CASCADE" })
   @JoinColumn({ name: "org_id" })
-  org: Org;
+  org!: Org;
 
   @Column({ type: "text" })
-  name: string;
+  name!: string;
 
   @Column({ type: "text", nullable: true })
-  description: string | null;
+  description!: string | null;
 
   @Column({ name: "is_system", type: "boolean", default: false })
-  isSystem: boolean;
+  isSystem!: boolean;
 
   @OneToMany(() => RolePermission, (rolePermission) => rolePermission.role)
-  rolePermissions: RolePermission[];
+  rolePermissions!: RolePermission[];
 }

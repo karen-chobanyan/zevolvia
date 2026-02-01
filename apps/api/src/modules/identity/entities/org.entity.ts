@@ -6,14 +6,14 @@ import { Role } from "./role.entity";
 @Entity({ name: "orgs" })
 export class Org extends BaseModel {
   @Column({ type: "text" })
-  name: string;
+  name!: string;
 
   @Column({ type: "text", unique: true })
-  slug: string;
+  slug!: string;
 
   @OneToMany(() => Membership, (membership) => membership.org)
-  memberships: Membership[];
+  memberships!: Membership[];
 
   @OneToMany(() => Role, (role) => role.org)
-  roles: Role[];
+  roles!: Role[];
 }

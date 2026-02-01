@@ -6,15 +6,15 @@ import { Chunk } from "./chunk.entity";
 @Index(["orgId"])
 export class Embedding extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })
-  orgId: string;
+  orgId!: string;
 
   @Column({ name: "chunk_id", type: "uuid", unique: true })
-  chunkId: string;
+  chunkId!: string;
 
   @OneToOne(() => Chunk, (chunk) => chunk.embedding, { onDelete: "CASCADE" })
   @JoinColumn({ name: "chunk_id" })
-  chunk: Chunk;
+  chunk!: Chunk;
 
   @Column({ type: "vector" })
-  vector: number[];
+  vector!: number[];
 }

@@ -10,6 +10,19 @@ services:
     volumes:
       - saloniq_db:/var/lib/postgresql/data
 
+  deps:
+    image: node:20-bookworm-slim
+    working_dir: /app
+    environment:
+      HUSKY: 0
+      CI: 1
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+      - api_node_modules:/app/apps/api/node_modules
+      - web_node_modules:/app/apps/web/node_modules
+    command: sh -c "corepack enable && HUSKY=0 CI=1 pnpm install --force"
+
   api:
     build:
       context: .
@@ -24,15 +37,20 @@ services:
       JWT_SECRET: dev-secret
       JWT_EXPIRES_IN: 15m
       WEB_ORIGIN: http://localhost:3000
+      HUSKY: 0
+      CI: 1
     ports:
       - "3001:3001"
     depends_on:
-      - db
+      db:
+        condition: service_started
+      deps:
+        condition: service_completed_successfully
     volumes:
       - .:/app
       - node_modules:/app/node_modules
       - api_node_modules:/app/apps/api/node_modules
-    command: sh -c "pnpm install && pnpm --filter saloniq-api start:dev"
+    command: pnpm --filter saloniq-api start:dev
 
   web:
     build:
@@ -42,15 +60,20 @@ services:
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:3001/api
       NEXT_TELEMETRY_DISABLED: 1
+      HUSKY: 0
+      CI: 1
     ports:
       - "3000:3000"
     depends_on:
-      - api
+      api:
+        condition: service_started
+      deps:
+        condition: service_completed_successfully
     volumes:
       - .:/app
       - node_modules:/app/node_modules
       - web_node_modules:/app/apps/web/node_modules
-    command: sh -c "pnpm install && pnpm --filter saloniq-web dev -- --hostname 0.0.0.0 --port 3000"
+    command: pnpm --filter saloniq-web dev
 
 volumes:
   saloniq_db:

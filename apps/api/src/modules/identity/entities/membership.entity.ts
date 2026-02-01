@@ -9,26 +9,26 @@ import { User } from "./user.entity";
 @Index(["orgId", "userId"], { unique: true })
 export class Membership extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })
-  orgId: string;
+  orgId!: string;
 
   @Column({ name: "user_id", type: "uuid" })
-  userId: string;
+  userId!: string;
 
   @Column({ name: "role_id", type: "uuid" })
-  roleId: string;
+  roleId!: string;
 
   @ManyToOne(() => Org, (org) => org.memberships, { onDelete: "CASCADE" })
   @JoinColumn({ name: "org_id" })
-  org: Org;
+  org!: Org;
 
   @ManyToOne(() => User, (user) => user.memberships, { onDelete: "CASCADE" })
   @JoinColumn({ name: "user_id" })
-  user: User;
+  user!: User;
 
   @ManyToOne(() => Role, { onDelete: "RESTRICT" })
   @JoinColumn({ name: "role_id" })
-  role: Role;
+  role!: Role;
 
   @Column({ type: "text", default: MembershipStatus.Active })
-  status: MembershipStatus;
+  status!: MembershipStatus;
 }
