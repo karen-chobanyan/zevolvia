@@ -1,24 +1,16 @@
 import "reflect-metadata";
-import { DataSource } from "typeorm";
-import { join } from "path";
+import { DataSource, DataSourceOptions } from "typeorm";
 import * as dotenv from "dotenv";
+import { ConfigService } from "@nestjs/config";
 
 dotenv.config();
+const configService = new ConfigService();
 
 export const AppDataSource = new DataSource({
   type: "postgres",
-  host: process.env.DB_HOST || "localhost",
-  port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 5432,
-  username: process.env.DB_USER || "postgres",
-  password: process.env.DB_PASSWORD || "postgres",
-  database: process.env.DB_NAME || "saloniq",
-  migrations: [join(__dirname, "migrations", "*.{ts,js}")],
-  entities: [join(__dirname, "..", "modules", "**", "*.entity.{ts,js}")],
-  extra: {
-    connectionTimeoutMillis: process.env.DB_CONNECT_TIMEOUT_MS
-      ? Number(process.env.DB_CONNECT_TIMEOUT_MS)
-      : 5000,
-  },
-});
-
-export default AppDataSource;
+  host: configService.getOrThrow("DB_HOST"),
+  port: configService.getOrThrow("DB_PORT"),
+  username: configService.getOrThrow("DB_USER"),
+  password: configService.getOrThrow("DB_PASSWORD"),
+  database: configService.getOrThrow("DB_NAME"),
+} as DataSourceOptions);
