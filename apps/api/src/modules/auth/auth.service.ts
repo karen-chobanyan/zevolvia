@@ -1,12 +1,10 @@
-import {
-  BadRequestException,
-  Injectable,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
 import * as bcrypt from "bcrypt";
-import { Repository } from "typeorm";
+import { createHash, randomBytes } from "crypto";
+import { EntityManager, IsNull, Repository } from "typeorm";
 import { Membership } from "../identity/entities/membership.entity";
 import { Org } from "../identity/entities/org.entity";
 import { Role } from "../identity/entities/role.entity";
@@ -14,6 +12,7 @@ import { RolePermission } from "../identity/entities/role-permission.entity";
 import { User } from "../identity/entities/user.entity";
 import { MembershipStatus } from "../../common/enums";
 import { JwtPayload } from "./types/jwt-payload";
+import { RefreshToken } from "./entities/refresh-token.entity";
 
 type RegisterInput = {
   email: string;
@@ -23,9 +22,17 @@ type RegisterInput = {
   orgName?: string;
 };
 
+export type AuthTokens = {
+  accessToken: string;
+  refreshToken: string;
+  accessMaxAgeMs?: number;
+  refreshMaxAgeMs: number;
+};
+
 @Injectable()
 export class AuthService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
@@ -37,6 +44,8 @@ export class AuthService {
     private readonly membershipRepo: Repository<Membership>,
     @InjectRepository(RolePermission)
     private readonly rolePermissionRepo: Repository<RolePermission>,
+    @InjectRepository(RefreshToken)
+    private readonly refreshTokenRepo: Repository<RefreshToken>,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -50,7 +59,7 @@ export class AuthService {
     return isMatch ? user : null;
   }
 
-  async login(user: User, orgId?: string): Promise<{ accessToken: string }> {
+  async login(user: User, orgId?: string): Promise<AuthTokens> {
     const selectedOrgId = orgId || (await this.getDefaultOrgId(user.id));
     if (!selectedOrgId) {
       throw new BadRequestException("orgId is required for login");
@@ -61,17 +70,7 @@ export class AuthService {
       throw new UnauthorizedException("No active membership for org");
     }
 
-    const permissions = await this.getUserPermissions(user.id, selectedOrgId);
-
-    const payload: JwtPayload = {
-      sub: user.id,
-      email: user.email,
-      orgId: selectedOrgId,
-      roleId: membership.roleId,
-      permissions,
-    };
-
-    return { accessToken: this.jwtService.sign(payload) };
+    return this.issueTokens(user, selectedOrgId, membership.roleId);
   }
 
   async register(input: RegisterInput): Promise<User> {
@@ -86,10 +85,7 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(input.password, 12);
-    const name = [input.firstName, input.lastName]
-      .filter(Boolean)
-      .join(" ")
-      .trim() || null;
+    const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
     const orgName = input.orgName?.trim() || name || "SalonIQ Workspace";
 
     return this.userRepo.manager.transaction(async (manager) => {
@@ -151,19 +147,13 @@ export class AuthService {
     return membership?.orgId ?? null;
   }
 
-  private async getActiveMembership(
-    userId: string,
-    orgId: string,
-  ): Promise<Membership | null> {
+  private async getActiveMembership(userId: string, orgId: string): Promise<Membership | null> {
     return this.membershipRepo.findOne({
       where: { userId, orgId, status: MembershipStatus.Active },
     });
   }
 
-  private async createUniqueSlug(
-    name: string,
-    orgRepo: Repository<Org>,
-  ): Promise<string> {
+  private async createUniqueSlug(name: string, orgRepo: Repository<Org>): Promise<string> {
     const base =
       name
         .trim()
@@ -185,5 +175,154 @@ export class AuthService {
     }
 
     return slug;
+  }
+
+  async refresh(refreshToken: string): Promise<AuthTokens> {
+    const tokenHash = this.hashToken(refreshToken);
+    const stored = await this.refreshTokenRepo.findOne({
+      where: { tokenHash },
+    });
+
+    if (!stored || stored.revokedAt) {
+      throw new UnauthorizedException("Invalid refresh token");
+    }
+
+    if (stored.expiresAt <= new Date()) {
+      await this.refreshTokenRepo.update({ id: stored.id }, { revokedAt: new Date() });
+      throw new UnauthorizedException("Refresh token expired");
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: stored.userId } });
+    if (!user) {
+      throw new UnauthorizedException("User not found");
+    }
+
+    const membership = await this.getActiveMembership(user.id, stored.orgId);
+    if (!membership) {
+      throw new UnauthorizedException("No active membership for org");
+    }
+
+    const accessToken = await this.buildAccessToken(user, stored.orgId, membership.roleId);
+
+    const accessMaxAgeMs = this.getAccessTokenMaxAgeMs();
+    const nextRefresh = await this.refreshTokenRepo.manager.transaction(async (manager) => {
+      await manager.update(RefreshToken, { id: stored.id }, { revokedAt: new Date() });
+      return this.createRefreshTokenRecord(user.id, stored.orgId, manager);
+    });
+
+    return {
+      accessToken,
+      refreshToken: nextRefresh.token,
+      accessMaxAgeMs,
+      refreshMaxAgeMs: nextRefresh.maxAgeMs,
+    };
+  }
+
+  async revokeRefreshToken(refreshToken: string): Promise<void> {
+    const tokenHash = this.hashToken(refreshToken);
+    await this.refreshTokenRepo.update(
+      { tokenHash, revokedAt: IsNull() },
+      { revokedAt: new Date() },
+    );
+  }
+
+  private async issueTokens(user: User, orgId: string, roleId: string): Promise<AuthTokens> {
+    const accessToken = await this.buildAccessToken(user, orgId, roleId);
+    const accessMaxAgeMs = this.getAccessTokenMaxAgeMs();
+    const refresh = await this.createRefreshTokenRecord(user.id, orgId);
+
+    return {
+      accessToken,
+      refreshToken: refresh.token,
+      accessMaxAgeMs,
+      refreshMaxAgeMs: refresh.maxAgeMs,
+    };
+  }
+
+  private async buildAccessToken(user: User, orgId: string, roleId: string): Promise<string> {
+    const permissions = await this.getUserPermissions(user.id, orgId);
+
+    const payload: JwtPayload = {
+      sub: user.id,
+      email: user.email,
+      orgId,
+      roleId,
+      permissions,
+    };
+
+    return this.jwtService.sign(payload);
+  }
+
+  private async createRefreshTokenRecord(
+    userId: string,
+    orgId: string,
+    manager?: EntityManager,
+  ): Promise<{ token: string; maxAgeMs: number }> {
+    const { token, tokenHash } = this.generateRefreshToken();
+    const maxAgeMs = this.getRefreshTokenMaxAgeMs();
+    const expiresAt = new Date(Date.now() + maxAgeMs);
+    const repo = manager ? manager.getRepository(RefreshToken) : this.refreshTokenRepo;
+
+    await repo.save(
+      repo.create({
+        userId,
+        orgId,
+        tokenHash,
+        expiresAt,
+      }),
+    );
+
+    return { token, maxAgeMs };
+  }
+
+  private generateRefreshToken(): { token: string; tokenHash: string } {
+    const token = randomBytes(64).toString("hex");
+    return { token, tokenHash: this.hashToken(token) };
+  }
+
+  private hashToken(token: string): string {
+    return createHash("sha256").update(token).digest("hex");
+  }
+
+  private getAccessTokenMaxAgeMs(): number | undefined {
+    const expiresIn = this.configService.get<string>("JWT_EXPIRES_IN");
+    if (!expiresIn) {
+      return undefined;
+    }
+    return this.parseDurationToMs(expiresIn, 15 * 60 * 1000);
+  }
+
+  private getRefreshTokenMaxAgeMs(): number {
+    const expiresIn = this.configService.get<string>("JWT_REFRESH_EXPIRES_IN") || "1d";
+    return this.parseDurationToMs(expiresIn, 24 * 60 * 60 * 1000);
+  }
+
+  private parseDurationToMs(value: string, fallbackMs: number): number {
+    const trimmed = value.trim();
+    const match = trimmed.match(/^(\d+)(ms|s|m|h|d)?$/i);
+    if (!match) {
+      return fallbackMs;
+    }
+
+    const amount = Number(match[1]);
+    if (!Number.isFinite(amount)) {
+      return fallbackMs;
+    }
+
+    const unit = (match[2] || "s").toLowerCase();
+    switch (unit) {
+      case "ms":
+        return amount;
+      case "s":
+        return amount * 1000;
+      case "m":
+        return amount * 60 * 1000;
+      case "h":
+        return amount * 60 * 60 * 1000;
+      case "d":
+        return amount * 24 * 60 * 60 * 1000;
+      default:
+        return fallbackMs;
+    }
   }
 }

@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import * as bcrypt from "bcrypt";
-import AppDataSource from "./data-source";
+import { AppDataSource } from "./data-source";
 import { MembershipStatus } from "../common/enums";
 import { Membership } from "../modules/identity/entities/membership.entity";
 import { Org } from "../modules/identity/entities/org.entity";
@@ -8,10 +8,7 @@ import { Role } from "../modules/identity/entities/role.entity";
 import { User } from "../modules/identity/entities/user.entity";
 import { Repository } from "typeorm";
 
-async function createUniqueSlug(
-  name: string,
-  orgRepo: Repository<Org>,
-): Promise<string> {
+async function createUniqueSlug(name: string, orgRepo: Repository<Org>): Promise<string> {
   const base =
     name
       .trim()

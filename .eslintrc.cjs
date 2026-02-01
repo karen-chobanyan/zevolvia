@@ -5,6 +5,9 @@ module.exports = {
     {
       files: ["apps/web/**/*.{ts,tsx,js,jsx}"],
       extends: ["next/core-web-vitals"],
+      rules: {
+        "react/no-unescaped-entities": "off",
+      },
     },
     {
       files: ["apps/api/**/*.{ts,js}"],

@@ -8,7 +8,7 @@
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
     "typeorm": "env-cmd --no-override ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
-    "migration:generate": "npm run build && npm run typeorm -- --dataSource=src/database/data-source.ts migration:generate",
+    "migration:generate": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:generate",
     "migration:run": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:run",
     "migration:revert": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:revert",
     "migration:show": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:show",

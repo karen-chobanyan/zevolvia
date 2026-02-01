@@ -13,4 +13,5 @@ export const AppDataSource = new DataSource({
   username: configService.getOrThrow("DB_USER"),
   password: configService.getOrThrow("DB_PASSWORD"),
   database: configService.getOrThrow("DB_NAME"),
+  migrations: ["src/database/migrations/*.ts"],
 } as DataSourceOptions);
