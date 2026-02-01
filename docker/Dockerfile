@@ -1,0 +1,29 @@
+FROM node:20-bookworm-slim AS base
+
+ENV PNPM_HOME=/pnpm
+ENV PATH=$PNPM_HOME:$PATH
+
+WORKDIR /app
+
+RUN corepack enable \
+  && corepack prepare pnpm@8.15.4 --activate \
+  && apt-get update \
+  && apt-get install -y --no-install-recommends python3 make g++ \
+  && rm -rf /var/lib/apt/lists/*
+
+FROM base AS deps
+COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
+COPY apps/api/package.json apps/api/package.json
+COPY apps/web/package.json apps/web/package.json
+RUN pnpm install
+
+FROM deps AS dev
+COPY . .
+
+FROM deps AS build
+ARG APP
+COPY . .
+RUN if [ -n "$APP" ]; then pnpm --filter saloniq-${APP} run build; else pnpm -r run build; fi
+
+FROM build AS prod
+ENV NODE_ENV=production

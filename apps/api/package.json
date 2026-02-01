@@ -7,7 +7,7 @@
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc -p tsconfig.build.json",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
-    "typeorm": "typeorm-ts-node-commonjs -d db/datasource.ts",
+    "typeorm": "typeorm-ts-node-commonjs -d src/database/data-source.ts",
     "migration:generate": "pnpm run build && pnpm run typeorm -- migration:generate",
     "migration:run": "pnpm run typeorm -- migration:run",
     "migration:revert": "pnpm run typeorm -- migration:revert",

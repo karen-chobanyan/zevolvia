@@ -12,4 +12,9 @@ export const typeOrmConfig = (): TypeOrmModuleOptions => ({
   synchronize: false,
   migrationsRun: false,
   migrations: [join(__dirname, "..", "database", "migrations", "*.{ts,js}")],
+  extra: {
+    connectionTimeoutMillis: process.env.DB_CONNECT_TIMEOUT_MS
+      ? Number(process.env.DB_CONNECT_TIMEOUT_MS)
+      : 5000,
+  },
 });

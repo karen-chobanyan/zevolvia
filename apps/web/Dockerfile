@@ -7,7 +7,6 @@ WORKDIR /app
 ENV HUSKY=0
 
 COPY package.json pnpm-workspace.yaml ./
-COPY .npmrc .npmrc
 COPY apps/web/package.json apps/web/package.json
 
 RUN pnpm install --filter saloniq-web

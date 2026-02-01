@@ -14,6 +14,11 @@ export const AppDataSource = new DataSource({
   database: process.env.DB_NAME || "saloniq",
   migrations: [join(__dirname, "migrations", "*.{ts,js}")],
   entities: [join(__dirname, "..", "modules", "**", "*.entity.{ts,js}")],
+  extra: {
+    connectionTimeoutMillis: process.env.DB_CONNECT_TIMEOUT_MS
+      ? Number(process.env.DB_CONNECT_TIMEOUT_MS)
+      : 5000,
+  },
 });
 
 export default AppDataSource;
