@@ -52,6 +52,8 @@ services:
       context: .
       dockerfile: docker/Dockerfile
       target: dev
+    env_file:
+      - apps/api/.env.docker
     environment:
       DB_HOST: db
       DB_PORT: 5432
@@ -70,7 +72,6 @@ services:
       MINIO_BUCKET: saloniq-files
       REDIS_HOST: redis
       REDIS_PORT: 6379
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       EMBEDDING_MODEL: text-embedding-3-small
       CHUNK_SIZE: 500
       CHUNK_OVERLAP: 50

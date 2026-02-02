@@ -12,7 +12,10 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [".env", "apps/api/.env"],
+    }),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmConfig }),
     AuthModule,
     DashboardModule,

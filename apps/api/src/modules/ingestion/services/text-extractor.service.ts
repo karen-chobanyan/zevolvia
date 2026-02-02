@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
-import * as pdfParse from "pdf-parse";
-import * as mammoth from "mammoth";
+
+import pdfParse from "pdf-parse";
+import mammoth from "mammoth";
 
 @Injectable()
 export class TextExtractorService {
