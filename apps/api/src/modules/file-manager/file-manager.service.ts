@@ -1,10 +1,17 @@
-import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, IsNull } from "typeorm";
 import { v4 as uuidv4 } from "uuid";
 import { Folder } from "./entities/folder.entity";
 import { File } from "../files/entities/file.entity";
 import { MinioService } from "../files/services/minio.service";
+import { IngestionService } from "../ingestion/ingestion.service";
 import { FileStatus, FileRagStatus } from "../../common/enums";
 
 export interface CreateFolderInput {
@@ -45,6 +52,8 @@ export class FileManagerService {
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
     private readonly minioService: MinioService,
+    @Inject(forwardRef(() => IngestionService))
+    private readonly ingestionService: IngestionService,
   ) {}
 
   async listFolders(orgId: string, parentId: string | null): Promise<Folder[]> {
@@ -206,6 +215,10 @@ export class FileManagerService {
         mimeType: savedFile.mimeType,
         folderId: savedFile.folderId,
         status: savedFile.status,
+      });
+
+      this.ingestionService.queueIngestion(savedFile.id, orgId).catch((error) => {
+        console.error(`Failed to queue ingestion for file ${savedFile.id}:`, error);
       });
     }
 
