@@ -41,7 +41,10 @@
     "openai": "^4.0.0",
     "pdf-parse": "^1.1.1",
     "mammoth": "^1.6.0",
-    "tiktoken": "^1.0.0"
+    "tiktoken": "^1.0.0",
+    "nestjs-pino": "^4.0.0",
+    "pino-http": "^10.0.0",
+    "pino-pretty": "^11.0.0"
   },
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

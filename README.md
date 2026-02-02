@@ -547,6 +547,78 @@ pending → queued → ingesting → indexed
 
 ---
 
+## Logging
+
+The API uses [Pino](https://github.com/pinojs/pino) for high-performance structured logging via `nestjs-pino`.
+
+### Log Levels
+
+| Level   | Description            |
+| ------- | ---------------------- |
+| `fatal` | System is unusable     |
+| `error` | Error conditions       |
+| `warn`  | Warning conditions     |
+| `info`  | Informational messages |
+| `debug` | Debug-level messages   |
+| `trace` | Trace-level messages   |
+
+Configure via `LOG_LEVEL` environment variable (defaults to `debug` in development, `info` in production).
+
+### Features
+
+- **Structured JSON logging** in production for easy parsing
+- **Pretty printing** in development with colors and timestamps
+- **Request correlation IDs** via `x-request-id` header
+- **Automatic request/response logging** with duration metrics
+- **Sensitive data redaction** (passwords, tokens, API keys)
+- **User context** (userId, orgId) attached to logs when authenticated
+
+### Log Output Examples
+
+**Development (pretty printed):**
+
+```
+[2024-01-15 10:30:45.123] INFO: POST /api/auth/login completed with 200
+    requestId: "abc-123"
+    userId: "user-456"
+    duration: 45
+```
+
+**Production (JSON):**
+
+```json
+{
+  "level": 30,
+  "time": 1705312245123,
+  "requestId": "abc-123",
+  "userId": "user-456",
+  "msg": "POST /api/auth/login completed with 200",
+  "duration": 45
+}
+```
+
+### Using Logger in Services
+
+```typescript
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
+
+@Injectable()
+export class MyService {
+  constructor(
+    @InjectPinoLogger(MyService.name)
+    private readonly logger: PinoLogger,
+  ) {}
+
+  async doSomething() {
+    this.logger.info({ userId, action: "create" }, "Creating resource");
+    // ... business logic
+    this.logger.debug({ resourceId, duration }, "Resource created");
+  }
+}
+```
+
+---
+
 ## Development
 
 ### Code Style
@@ -590,6 +662,8 @@ pnpm build:web
 
 ### Environment Checklist
 
+- [ ] Set `NODE_ENV=production`
+- [ ] Set `LOG_LEVEL=info` (or `warn` for less verbose)
 - [ ] Set strong `JWT_SECRET`
 - [ ] Configure production database
 - [ ] Set up Redis cluster
@@ -645,6 +719,15 @@ docker-compose -f docker-compose.prod.yml up -d
 - Same tokenizer used by OpenAI models
 - Accurate token counting for chunk sizing
 - Prevents mid-word splits
+
+### Why Pino for Logging?
+
+- Fastest Node.js logger (~5x faster than alternatives)
+- Structured JSON output for production
+- Request correlation IDs out of the box
+- Automatic sensitive data redaction
+- Pretty printing for development
+- Low overhead in high-throughput scenarios
 
 ---
 

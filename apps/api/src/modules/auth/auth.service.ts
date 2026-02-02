@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, UnauthorizedException } from "@nestjs/
 import { ConfigService } from "@nestjs/config";
 import { JwtService } from "@nestjs/jwt";
 import { InjectRepository } from "@nestjs/typeorm";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import * as bcrypt from "bcrypt";
 import { createHash, randomBytes } from "crypto";
 import { EntityManager, In, IsNull, Repository } from "typeorm";
@@ -33,6 +34,8 @@ export type AuthTokens = {
 @Injectable()
 export class AuthService {
   constructor(
+    @InjectPinoLogger(AuthService.name)
+    private readonly logger: PinoLogger,
     private readonly configService: ConfigService,
     private readonly jwtService: JwtService,
     @InjectRepository(User)
@@ -53,43 +56,68 @@ export class AuthService {
 
   async validateUser(email: string, password: string): Promise<User | null> {
     const normalizedEmail = email.trim().toLowerCase();
+    this.logger.debug({ email: normalizedEmail }, "Validating user credentials");
+
     const user = await this.userRepo.findOne({ where: { email: normalizedEmail } });
     if (!user?.passwordHash) {
+      this.logger.warn({ email: normalizedEmail }, "User not found or no password set");
       return null;
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    return isMatch ? user : null;
+    if (!isMatch) {
+      this.logger.warn({ email: normalizedEmail, userId: user.id }, "Invalid password");
+      return null;
+    }
+
+    this.logger.info({ email: normalizedEmail, userId: user.id }, "User credentials validated");
+    return user;
   }
 
   async login(user: User, orgId?: string): Promise<AuthTokens> {
+    this.logger.info({ userId: user.id, email: user.email, orgId }, "Login attempt");
+
     const selectedOrgId = orgId || (await this.getDefaultOrgId(user.id));
     if (!selectedOrgId) {
+      this.logger.warn({ userId: user.id }, "Login failed: no orgId provided or found");
       throw new BadRequestException("orgId is required for login");
     }
 
     const membership = await this.getActiveMembership(user.id, selectedOrgId);
     if (!membership) {
+      this.logger.warn(
+        { userId: user.id, orgId: selectedOrgId },
+        "Login failed: no active membership",
+      );
       throw new UnauthorizedException("No active membership for org");
     }
 
-    return this.issueTokens(user, selectedOrgId, membership.roleId);
+    const tokens = await this.issueTokens(user, selectedOrgId, membership.roleId);
+    this.logger.info({ userId: user.id, orgId: selectedOrgId }, "Login successful");
+
+    return tokens;
   }
 
   async register(input: RegisterInput): Promise<User> {
     const email = input.email?.trim().toLowerCase();
+    this.logger.info({ email }, "Registration attempt");
+
     if (!email || !input.password) {
+      this.logger.warn("Registration failed: missing email or password");
       throw new BadRequestException("Email and password are required");
     }
 
     const existing = await this.userRepo.findOne({ where: { email } });
     if (existing) {
+      this.logger.warn({ email }, "Registration failed: email already in use");
       throw new BadRequestException("Email already in use");
     }
 
     const passwordHash = await bcrypt.hash(input.password, 12);
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
     const orgName = input.orgName?.trim() || name || "SalonIQ Workspace";
+
+    this.logger.debug({ email, orgName }, "Creating user and organization");
 
     return this.userRepo.manager.transaction(async (manager) => {
       const orgRepo = manager.withRepository(this.orgRepo);
@@ -136,6 +164,11 @@ export class AuthService {
         status: MembershipStatus.Active,
       });
       await membershipRepo.save(membership);
+
+      this.logger.info(
+        { userId: user.id, email: user.email, orgId: org.id },
+        "User registered successfully",
+      );
 
       return user;
     });
@@ -198,27 +231,36 @@ export class AuthService {
   }
 
   async refresh(refreshToken: string): Promise<AuthTokens> {
+    this.logger.debug("Token refresh attempt");
+
     const tokenHash = this.hashToken(refreshToken);
     const stored = await this.refreshTokenRepo.findOne({
       where: { tokenHash },
     });
 
     if (!stored || stored.revokedAt) {
+      this.logger.warn("Token refresh failed: invalid or revoked token");
       throw new UnauthorizedException("Invalid refresh token");
     }
 
     if (stored.expiresAt <= new Date()) {
       await this.refreshTokenRepo.update({ id: stored.id }, { revokedAt: new Date() });
+      this.logger.warn({ userId: stored.userId }, "Token refresh failed: token expired");
       throw new UnauthorizedException("Refresh token expired");
     }
 
     const user = await this.userRepo.findOne({ where: { id: stored.userId } });
     if (!user) {
+      this.logger.error({ userId: stored.userId }, "Token refresh failed: user not found");
       throw new UnauthorizedException("User not found");
     }
 
     const membership = await this.getActiveMembership(user.id, stored.orgId);
     if (!membership) {
+      this.logger.warn(
+        { userId: user.id, orgId: stored.orgId },
+        "Token refresh failed: no active membership",
+      );
       throw new UnauthorizedException("No active membership for org");
     }
 
@@ -229,6 +271,8 @@ export class AuthService {
       await manager.update(RefreshToken, { id: stored.id }, { revokedAt: new Date() });
       return this.createRefreshTokenRecord(user.id, stored.orgId, manager);
     });
+
+    this.logger.info({ userId: user.id, orgId: stored.orgId }, "Token refreshed successfully");
 
     return {
       accessToken,

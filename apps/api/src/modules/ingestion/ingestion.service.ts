@@ -1,6 +1,7 @@
-import { Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { InjectQueue } from "@nestjs/bullmq";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import { Queue } from "bullmq";
 import { Repository, DataSource } from "typeorm";
 import { Readable } from "stream";
@@ -26,9 +27,9 @@ const QUEUE_NAME = "file-ingestion";
 
 @Injectable()
 export class IngestionService {
-  private readonly logger = new Logger(IngestionService.name);
-
   constructor(
+    @InjectPinoLogger(IngestionService.name)
+    private readonly logger: PinoLogger,
     @InjectQueue(QUEUE_NAME) private readonly ingestionQueue: Queue<IngestionJobData>,
     @InjectRepository(File) private readonly fileRepository: Repository<File>,
     @InjectRepository(Document) private readonly documentRepository: Repository<Document>,
@@ -54,7 +55,10 @@ export class IngestionService {
 
     if (!this.isSupportedFileType(file.mimeType)) {
       await this.fileRepository.update({ id: fileId }, { ragStatus: FileRagStatus.Skipped });
-      this.logger.log(`File ${fileId} skipped: unsupported file type ${file.mimeType}`);
+      this.logger.info(
+        { fileId, orgId, mimeType: file.mimeType },
+        "File skipped: unsupported file type",
+      );
       return;
     }
 
@@ -72,38 +76,51 @@ export class IngestionService {
       },
     );
 
-    this.logger.log(`File ${fileId} queued for ingestion`);
+    this.logger.info({ fileId, orgId, fileName: file.originalName }, "File queued for ingestion");
   }
 
   async processFile(fileId: string, orgId: string): Promise<void> {
+    const startTime = Date.now();
+    this.logger.info({ fileId, orgId }, "Starting file processing");
+
     const file = await this.fileRepository.findOne({
       where: { id: fileId, orgId },
     });
 
     if (!file) {
+      this.logger.warn({ fileId, orgId }, "File not found for processing");
       throw new NotFoundException("File not found");
     }
 
     await this.fileRepository.update({ id: fileId }, { ragStatus: FileRagStatus.Ingesting });
 
     try {
+      this.logger.debug({ fileId, storageKey: file.storageKey }, "Fetching file from storage");
       const stream = await this.minioService.getObject(file.storageKey);
       const buffer = await this.streamToBuffer(stream);
+      this.logger.debug({ fileId, size: buffer.length }, "File fetched from storage");
 
+      this.logger.debug({ fileId, mimeType: file.mimeType }, "Extracting text from file");
       const text = await this.textExtractor.extract(buffer, file.mimeType);
       if (!text || text.trim().length === 0) {
         throw new Error("No text content extracted from file");
       }
+      this.logger.debug({ fileId, textLength: text.length }, "Text extracted");
 
+      this.logger.debug({ fileId }, "Chunking text");
       const chunks = this.chunker.chunk(text);
       if (chunks.length === 0) {
         throw new Error("No chunks generated from text");
       }
+      this.logger.debug({ fileId, chunkCount: chunks.length }, "Text chunked");
 
+      this.logger.debug({ fileId, chunkCount: chunks.length }, "Generating embeddings");
       const embeddings = await this.embeddingService.generateEmbeddings(
         chunks.map((c) => c.content),
       );
+      this.logger.debug({ fileId, embeddingCount: embeddings.length }, "Embeddings generated");
 
+      this.logger.debug({ fileId }, "Persisting results to database");
       await this.persistResults(file, chunks, embeddings);
 
       await this.fileRepository.update(
@@ -111,10 +128,34 @@ export class IngestionService {
         { ragStatus: FileRagStatus.Indexed, errorMessage: null },
       );
 
-      this.logger.log(`File ${fileId} successfully indexed with ${chunks.length} chunks`);
+      const duration = Date.now() - startTime;
+      this.logger.info(
+        {
+          fileId,
+          orgId,
+          fileName: file.originalName,
+          chunkCount: chunks.length,
+          duration,
+        },
+        "File successfully indexed",
+      );
     } catch (error) {
+      const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
-      this.logger.error(`Failed to process file ${fileId}`, error);
+
+      this.logger.error(
+        {
+          fileId,
+          orgId,
+          duration,
+          error: {
+            message: errorMessage,
+            name: (error as Error).name,
+            stack: (error as Error).stack,
+          },
+        },
+        "Failed to process file",
+      );
 
       await this.fileRepository.update(
         { id: fileId },

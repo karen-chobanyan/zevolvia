@@ -1,7 +1,10 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
+import { LoggerModule } from "nestjs-pino";
+import { APP_INTERCEPTOR } from "@nestjs/core";
 import { typeOrmConfig } from "./config/typeorm.config";
+import { loggerConfig, LoggingInterceptor } from "./common/logger";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
 import { FileManagerModule } from "./modules/file-manager/file-manager.module";
@@ -16,6 +19,7 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
       isGlobal: true,
       envFilePath: [".env", "apps/api/.env"],
     }),
+    LoggerModule.forRoot(loggerConfig()),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmConfig }),
     AuthModule,
     DashboardModule,
@@ -24,6 +28,12 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
     IdentityModule,
     IngestionModule,
     KnowledgeModule,
+  ],
+  providers: [
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
+    },
   ],
 })
 export class AppModule {}
