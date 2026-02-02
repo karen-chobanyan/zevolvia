@@ -74,14 +74,21 @@ async function seed() {
     });
     await roleRepo.save(role);
 
-    // Grant all file permissions to the Owner role
-    const filePermissions = await permissionRepo.find({
+    // Grant default permissions to the Owner role
+    const defaultPermissions = await permissionRepo.find({
       where: {
-        key: In(["files:read", "files:write", "files:upload", "files:delete"]),
+        key: In([
+          "files:read",
+          "files:write",
+          "files:upload",
+          "files:delete",
+          "chat:read",
+          "chat:write",
+        ]),
       },
     });
 
-    for (const permission of filePermissions) {
+    for (const permission of defaultPermissions) {
       const rolePermission = rolePermissionRepo.create({
         roleId: role.id,
         permissionId: permission.id,

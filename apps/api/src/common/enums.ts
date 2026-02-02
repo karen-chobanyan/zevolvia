@@ -34,6 +34,12 @@ export enum FileRagStatus {
   Skipped = "skipped",
 }
 
+export enum ChatRole {
+  User = "USER",
+  Assistant = "ASSISTANT",
+  System = "SYSTEM",
+}
+
 export const ALLOWED_FILE_TYPES = [
   "application/pdf",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",

@@ -41,6 +41,6 @@ const QUEUE_NAME = "file-ingestion";
     ChunkerService,
     EmbeddingService,
   ],
-  exports: [IngestionService],
+  exports: [IngestionService, EmbeddingService],
 })
 export class IngestionModule {}

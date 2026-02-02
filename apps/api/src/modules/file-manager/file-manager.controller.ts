@@ -12,7 +12,9 @@ import {
   UseInterceptors,
   UploadedFiles,
   BadRequestException,
+  Res,
 } from "@nestjs/common";
+import type { Response } from "express";
 import { FilesInterceptor } from "@nestjs/platform-express";
 import { memoryStorage } from "multer";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -75,6 +77,24 @@ export class FileManagerController {
   @Permissions("files:read")
   async listFiles(@Request() req: { user: JwtPayload }) {
     return this.fileManagerService.listFiles(req.user.orgId);
+  }
+
+  @Get("files/:id/pdf")
+  @Permissions("files:read")
+  async getPdf(
+    @Param("id") id: string,
+    @Request() req: { user: JwtPayload },
+    @Res() res: Response,
+    @Query("download") download?: string,
+  ) {
+    const { stream, file } = await this.fileManagerService.getPdfStream(id, req.user.orgId);
+    const safeName = (file.originalName || "document.pdf").replace(/[/\\"]/g, "_");
+    const disposition = download ? "attachment" : "inline";
+
+    res.setHeader("Content-Type", file.mimeType || "application/pdf");
+    res.setHeader("Content-Disposition", `${disposition}; filename="${safeName}"`);
+    res.setHeader("Cache-Control", "private, max-age=3600");
+    stream.pipe(res);
   }
 
   @Post("upload")

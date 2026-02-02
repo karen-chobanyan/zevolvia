@@ -159,6 +159,28 @@ export class FileManagerService {
     );
   }
 
+  async getPdfStream(
+    id: string,
+    orgId: string,
+  ): Promise<{ stream: NodeJS.ReadableStream; file: File }> {
+    const file = await this.fileRepository.findOne({
+      where: { id, orgId },
+    });
+
+    if (!file) {
+      throw new NotFoundException("File not found");
+    }
+
+    const isPdf =
+      file.mimeType === "application/pdf" || file.originalName.toLowerCase().endsWith(".pdf");
+    if (!isPdf) {
+      throw new BadRequestException("File is not a PDF");
+    }
+
+    const stream = await this.minioService.getObject(file.storageKey);
+    return { stream, file };
+  }
+
   async uploadFiles(input: UploadFilesInput): Promise<FileResponse[]> {
     const { orgId, uploadedById, folderId, files } = input;
 

@@ -7,6 +7,7 @@ import { typeOrmConfig } from "./config/typeorm.config";
 import { loggerConfig, LoggingInterceptor } from "./common/logger";
 import { AuthModule } from "./modules/auth/auth.module";
 import { DashboardModule } from "./modules/dashboard/dashboard.module";
+import { ChatModule } from "./modules/chat/chat.module";
 import { FileManagerModule } from "./modules/file-manager/file-manager.module";
 import { FilesModule } from "./modules/files/files.module";
 import { IdentityModule } from "./modules/identity/identity.module";
@@ -22,6 +23,7 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
     LoggerModule.forRoot(loggerConfig()),
     TypeOrmModule.forRootAsync({ useFactory: typeOrmConfig }),
     AuthModule,
+    ChatModule,
     DashboardModule,
     FileManagerModule,
     FilesModule,

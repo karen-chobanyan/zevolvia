@@ -3,8 +3,8 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-*: initial;
-  --font-outfit: Outfit, sans-serif;
+  --font-sans: var(--font-inter), sans-serif;
+  --font-serif: var(--font-playfair), serif;
 
   --breakpoint-*: initial;
   --breakpoint-2xsm: 375px;
@@ -38,18 +38,34 @@
   --color-white: #ffffff;
   --color-black: #101828;
 
-  --color-brand-25: #f2f7ff;
-  --color-brand-50: #ecf3ff;
-  --color-brand-100: #dde9ff;
-  --color-brand-200: #c2d6ff;
-  --color-brand-300: #9cb9ff;
-  --color-brand-400: #7592ff;
-  --color-brand-500: #465fff;
-  --color-brand-600: #3641f5;
-  --color-brand-700: #2a31d8;
-  --color-brand-800: #252dae;
-  --color-brand-900: #262e89;
-  --color-brand-950: #161950;
+  /* Champagne Gold Palette */
+  --color-brand-25: #FDFBF7;
+  --color-brand-50: #FAF6EF;
+  --color-brand-100: #F3EBDD;
+  --color-brand-200: #E6D2B3;
+  --color-brand-300: #D9B98A;
+  --color-brand-400: #CCA061;
+  --color-brand-500: #C5A065; /* Base Gold */
+  --color-brand-600: #B08D55;
+  --color-brand-700: #8E7144;
+  --color-brand-800: #6B5533;
+  --color-brand-900: #493922;
+  --color-brand-950: #261D11;
+
+  /* Deep Charcoal Palette replacing Gray */
+  --color-gray-25: #F9FAFB;
+  --color-gray-50: #F3F4F6;
+  --color-gray-100: #E5E7EB;
+  --color-gray-200: #D1D5DB;
+  --color-gray-300: #9CA3AF;
+  --color-gray-400: #6B7280;
+  --color-gray-500: #4B5563;
+  --color-gray-600: #374151;
+  --color-gray-700: #1F2937;
+  --color-gray-800: #1A1A1A; /* Charcoal Base */
+  --color-gray-900: #111827;
+  --color-gray-950: #030712;
+  --color-gray-dark: #121212;
 
   --color-blue-light-25: #f5fbff;
   --color-blue-light-50: #f0f9ff;
@@ -63,20 +79,6 @@
   --color-blue-light-800: #065986;
   --color-blue-light-900: #0b4a6f;
   --color-blue-light-950: #062c41;
-
-  --color-gray-25: #fcfcfd;
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f2f4f7;
-  --color-gray-200: #e4e7ec;
-  --color-gray-300: #d0d5dd;
-  --color-gray-400: #98a2b3;
-  --color-gray-500: #667085;
-  --color-gray-600: #475467;
-  --color-gray-700: #344054;
-  --color-gray-800: #1d2939;
-  --color-gray-900: #101828;
-  --color-gray-950: #0c111d;
-  --color-gray-dark: #1a2231;
 
   --color-orange-25: #fffaf5;
   --color-orange-50: #fff6ed;
@@ -130,10 +132,6 @@
   --color-warning-900: #7a2e0e;
   --color-warning-950: #4e1d09;
 
-  --color-theme-pink-500: #ee46bc;
-
-  --color-theme-purple-500: #7a5af8;
-
   --shadow-theme-md: 0px 4px 8px -2px rgba(16, 24, 40, 0.1),
   0px 2px 4px -2px rgba(16, 24, 40, 0.06);
   --shadow-theme-lg: 0px 12px 16px -4px rgba(16, 24, 40, 0.08),
@@ -144,7 +142,7 @@
   --shadow-theme-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08),
   0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
-  --shadow-focus-ring: 0px 0px 0px 4px rgba(70, 95, 255, 0.12);
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(197, 160, 101, 0.12); /* Adjusted to gold */
   --shadow-slider-navigation: 0px 1px 2px 0px rgba(16, 24, 40, 0.1),
   0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip: 0px 4px 6px -2px rgba(16, 24, 40, 0.05),
@@ -185,7 +183,7 @@
   }
 
   body {
-    @apply relative font-normal font-outfit z-1 bg-gray-50;
+    @apply relative font-normal font-sans z-1 bg-gray-50;
   }
 }
 
