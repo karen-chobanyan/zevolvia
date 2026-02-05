@@ -1,9 +1,9 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useState, useRef } from "react";
 import { Modal } from "@/ui/modal";
 import { BookingApi } from "@/services/BookingApi.service";
-import { Service, StaffMember, Client, AvailableSlot } from "@/types/booking";
+import { Service, StaffMember, Client } from "@/types/booking";
 
 type Notice = {
   type: "success" | "error";
@@ -17,6 +17,7 @@ type Props = {
   services: Service[];
   staff: StaffMember[];
   initialDate: Date | null;
+  initialStaffId?: string;
 };
 
 const getErrorMessage = (error: unknown, fallback: string) => {
@@ -35,6 +36,14 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
+const formatDateForInput = (date: Date): string => {
+  return date.toISOString().split("T")[0];
+};
+
+const formatTimeForInput = (date: Date): string => {
+  return date.toTimeString().slice(0, 5);
+};
+
 export default function BookingModal({
   isOpen,
   onClose,
@@ -42,57 +51,73 @@ export default function BookingModal({
   services,
   staff,
   initialDate,
+  initialStaffId,
 }: Props) {
   const [staffId, setStaffId] = useState("");
   const [serviceId, setServiceId] = useState("");
-  const [clientSearch, setClientSearch] = useState("");
+  const [clientInput, setClientInput] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
-  const [clientName, setClientName] = useState("");
   const [isWalkIn, setIsWalkIn] = useState(false);
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedSlot, setSelectedSlot] = useState<AvailableSlot | null>(null);
+  const [selectedTime, setSelectedTime] = useState("");
   const [notes, setNotes] = useState("");
 
   const [clients, setClients] = useState<Client[]>([]);
-  const [availableSlots, setAvailableSlots] = useState<AvailableSlot[]>([]);
-  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [notice, setNotice] = useState<Notice | null>(null);
 
+  const clientInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const selectedService = services.find((s) => s.id === serviceId);
 
+  // Initialize form when modal opens
   useEffect(() => {
-    if (isOpen && initialDate) {
-      setSelectedDate(initialDate.toISOString().split("T")[0]);
+    if (isOpen) {
+      if (initialDate) {
+        setSelectedDate(formatDateForInput(initialDate));
+        // Only set time if it's not midnight (meaning a specific time was selected)
+        const hours = initialDate.getHours();
+        const minutes = initialDate.getMinutes();
+        if (hours !== 0 || minutes !== 0) {
+          setSelectedTime(formatTimeForInput(initialDate));
+        }
+      }
+      if (initialStaffId) {
+        setStaffId(initialStaffId);
+      }
     }
-  }, [isOpen, initialDate]);
+  }, [isOpen, initialDate, initialStaffId]);
 
+  // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setStaffId("");
       setServiceId("");
-      setClientSearch("");
+      setClientInput("");
       setSelectedClient(null);
-      setClientName("");
       setIsWalkIn(false);
       setSelectedDate("");
-      setSelectedSlot(null);
+      setSelectedTime("");
       setNotes("");
       setClients([]);
-      setAvailableSlots([]);
+      setShowClientDropdown(false);
       setNotice(null);
     }
   }, [isOpen]);
 
+  // Search clients with debounce
   useEffect(() => {
     const searchClients = async () => {
-      if (clientSearch.length < 2) {
+      if (clientInput.length < 2 || selectedClient) {
         setClients([]);
         return;
       }
       try {
-        const results = await BookingApi.searchClients(clientSearch);
+        const results = await BookingApi.searchClients(clientInput);
         setClients(results);
+        setShowClientDropdown(results.length > 0);
       } catch {
         setClients([]);
       }
@@ -100,62 +125,83 @@ export default function BookingModal({
 
     const debounce = setTimeout(searchClients, 300);
     return () => clearTimeout(debounce);
-  }, [clientSearch]);
+  }, [clientInput, selectedClient]);
 
+  // Close dropdown when clicking outside
   useEffect(() => {
-    const loadSlots = async () => {
-      if (!staffId || !selectedDate || !selectedService) {
-        setAvailableSlots([]);
-        return;
-      }
-
-      setLoadingSlots(true);
-      try {
-        const slots = await BookingApi.getAvailableSlots(
-          staffId,
-          selectedDate,
-          selectedService.durationMinutes,
-        );
-        setAvailableSlots(slots);
-      } catch {
-        setAvailableSlots([]);
-      } finally {
-        setLoadingSlots(false);
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node) &&
+        clientInputRef.current &&
+        !clientInputRef.current.contains(event.target as Node)
+      ) {
+        setShowClientDropdown(false);
       }
     };
 
-    loadSlots();
-  }, [staffId, selectedDate, selectedService]);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleSelectClient = (client: Client) => {
     setSelectedClient(client);
-    setClientSearch(client.name);
-    setClients([]);
+    setClientInput(client.name);
+    setShowClientDropdown(false);
     setIsWalkIn(false);
+  };
+
+  const handleClientInputChange = (value: string) => {
+    setClientInput(value);
+    setSelectedClient(null);
+  };
+
+  const handleClearClient = () => {
+    setClientInput("");
+    setSelectedClient(null);
+    setShowClientDropdown(false);
   };
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     setNotice(null);
 
-    if (!staffId || !serviceId || !selectedSlot) {
-      setNotice({ type: "error", message: "Please fill in all required fields" });
+    if (!staffId) {
+      setNotice({ type: "error", message: "Please select a staff member" });
       return;
     }
 
-    if (!selectedClient && !clientName.trim() && !isWalkIn) {
+    if (!serviceId) {
+      setNotice({ type: "error", message: "Please select a service" });
+      return;
+    }
+
+    if (!selectedDate) {
+      setNotice({ type: "error", message: "Please select a date" });
+      return;
+    }
+
+    if (!selectedTime) {
+      setNotice({ type: "error", message: "Please select a time" });
+      return;
+    }
+
+    if (!selectedClient && !clientInput.trim() && !isWalkIn) {
       setNotice({ type: "error", message: "Please select a client or enter a name" });
       return;
     }
+
+    // Construct the start time
+    const startTime = new Date(`${selectedDate}T${selectedTime}`);
 
     setSubmitting(true);
     try {
       await BookingApi.createBooking({
         staffId,
         serviceId,
-        startTime: selectedSlot.startTime,
+        startTime: startTime.toISOString(),
         clientId: selectedClient?.id,
-        clientName: isWalkIn ? "Walk-in" : !selectedClient ? clientName.trim() : undefined,
+        clientName: isWalkIn ? "Walk-in" : !selectedClient ? clientInput.trim() : undefined,
         notes: notes.trim() || undefined,
       });
       onCreated();
@@ -164,13 +210,6 @@ export default function BookingModal({
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const formatTime = (isoString: string) => {
-    return new Date(isoString).toLocaleTimeString([], {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
   };
 
   return (
@@ -221,6 +260,11 @@ export default function BookingModal({
               </option>
             ))}
           </select>
+          {selectedService && (
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Duration: {selectedService.durationMinutes} minutes
+            </p>
+          )}
         </div>
 
         {/* Client Selection */}
@@ -237,8 +281,8 @@ export default function BookingModal({
                   setIsWalkIn(e.target.checked);
                   if (e.target.checked) {
                     setSelectedClient(null);
-                    setClientSearch("");
-                    setClientName("");
+                    setClientInput("");
+                    setShowClientDropdown(false);
                   }
                 }}
                 className="rounded border-gray-300"
@@ -248,23 +292,61 @@ export default function BookingModal({
           </div>
           {!isWalkIn && (
             <div className="relative">
-              <input
-                type="text"
-                value={selectedClient ? selectedClient.name : clientSearch}
-                onChange={(e) => {
-                  setClientSearch(e.target.value);
-                  setSelectedClient(null);
-                }}
-                placeholder="Search clients..."
-                className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              />
-              {clients.length > 0 && (
-                <div className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800">
+              <div className="relative">
+                <input
+                  ref={clientInputRef}
+                  type="text"
+                  value={clientInput}
+                  onChange={(e) => handleClientInputChange(e.target.value)}
+                  onFocus={() => {
+                    if (clients.length > 0 && !selectedClient) {
+                      setShowClientDropdown(true);
+                    }
+                  }}
+                  placeholder="Search or enter client name..."
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 pr-10 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+                />
+                {clientInput && (
+                  <button
+                    type="button"
+                    onClick={handleClearClient}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              {selectedClient && (
+                <p className="mt-1 text-xs text-success-600 dark:text-success-400">
+                  Selected: {selectedClient.name}{" "}
+                  {selectedClient.email ? `(${selectedClient.email})` : ""}
+                </p>
+              )}
+              {!selectedClient && clientInput.length >= 2 && clients.length === 0 && (
+                <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  No matching clients. &quot;{clientInput}&quot; will be used as client name.
+                </p>
+              )}
+              {showClientDropdown && clients.length > 0 && (
+                <div
+                  ref={dropdownRef}
+                  className="absolute z-10 mt-1 w-full rounded-lg border border-gray-200 bg-white shadow-lg dark:border-gray-700 dark:bg-gray-800 max-h-48 overflow-y-auto"
+                >
                   {clients.map((client) => (
                     <button
                       key={client.id}
                       type="button"
-                      onClick={() => handleSelectClient(client)}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        handleSelectClient(client);
+                      }}
                       className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700"
                     >
                       <div className="font-medium text-gray-800 dark:text-white">{client.name}</div>
@@ -275,69 +357,35 @@ export default function BookingModal({
               )}
             </div>
           )}
-          {!isWalkIn && !selectedClient && clientSearch.length >= 2 && clients.length === 0 && (
-            <div className="mt-2">
-              <label className="mb-1 block text-xs text-gray-500 dark:text-gray-400">
-                Client not found? Enter name:
-              </label>
-              <input
-                type="text"
-                value={clientName}
-                onChange={(e) => setClientName(e.target.value)}
-                placeholder="Client name"
-                className="h-10 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-              />
-            </div>
-          )}
         </div>
 
-        {/* Date Selection */}
-        <div>
-          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-            Date *
-          </label>
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => {
-              setSelectedDate(e.target.value);
-              setSelectedSlot(null);
-            }}
-            min={new Date().toISOString().split("T")[0]}
-            className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-          />
-        </div>
-
-        {/* Time Slot Selection */}
-        {staffId && serviceId && selectedDate && (
+        {/* Date and Time Selection */}
+        <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Available Times *
+              Date *
             </label>
-            {loadingSlots ? (
-              <div className="text-sm text-gray-500">Loading available times...</div>
-            ) : availableSlots.length === 0 ? (
-              <div className="text-sm text-gray-500">No available times for this date</div>
-            ) : (
-              <div className="grid grid-cols-4 gap-2 max-h-40 overflow-y-auto">
-                {availableSlots.map((slot) => (
-                  <button
-                    key={slot.startTime}
-                    type="button"
-                    onClick={() => setSelectedSlot(slot)}
-                    className={`rounded-lg border px-3 py-2 text-sm transition ${
-                      selectedSlot?.startTime === slot.startTime
-                        ? "border-brand-500 bg-brand-500 text-white"
-                        : "border-gray-300 text-gray-700 hover:border-brand-300 dark:border-gray-600 dark:text-gray-300"
-                    }`}
-                  >
-                    {formatTime(slot.startTime)}
-                  </button>
-                ))}
-              </div>
-            )}
+            <input
+              type="date"
+              value={selectedDate}
+              onChange={(e) => setSelectedDate(e.target.value)}
+              min={new Date().toISOString().split("T")[0]}
+              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            />
           </div>
-        )}
+          <div>
+            <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+              Time *
+            </label>
+            <input
+              type="time"
+              value={selectedTime}
+              onChange={(e) => setSelectedTime(e.target.value)}
+              step="900"
+              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
+            />
+          </div>
+        </div>
 
         {/* Notes */}
         <div>
@@ -378,7 +426,7 @@ export default function BookingModal({
           </button>
           <button
             type="submit"
-            disabled={submitting || !selectedSlot}
+            disabled={submitting}
             className="inline-flex h-11 items-center justify-center rounded-lg bg-brand-500 px-5 text-sm font-semibold text-white hover:bg-brand-600 disabled:opacity-70"
           >
             {submitting ? "Creating..." : "Create Booking"}

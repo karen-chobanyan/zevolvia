@@ -245,6 +245,7 @@ export default function CalendarPageClient() {
         services={services}
         staff={staff}
         initialDate={selectedDate}
+        initialStaffId={selectedStaffId || undefined}
       />
 
       <BookingDetailModal
