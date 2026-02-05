@@ -177,13 +177,13 @@ export const BookingApi = {
     return response.data;
   },
 
-  // Staff members (using identity API)
+  // Staff members (using org members API)
   getStaffMembers: async (): Promise<StaffMember[]> => {
-    const response = await api.get("/identity/users");
-    return response.data.map((u: { id: string; name: string | null; email: string }) => ({
-      id: u.id,
-      name: u.name,
-      email: u.email,
+    const response = await api.get("/org/members");
+    return response.data.map((m: { userId: string; name?: string | null; email: string }) => ({
+      id: m.userId,
+      name: m.name || null,
+      email: m.email,
     }));
   },
 };

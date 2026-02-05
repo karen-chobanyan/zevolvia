@@ -10,6 +10,9 @@ export class User extends BaseModel {
   @Column({ type: "text", nullable: true })
   name!: string | null;
 
+  @Column({ type: "text", nullable: true })
+  phone!: string | null;
+
   @Column({ name: "password_hash", type: "text", nullable: true })
   passwordHash!: string | null;
 

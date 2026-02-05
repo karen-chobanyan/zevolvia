@@ -15,6 +15,8 @@ import { IngestionModule } from "./modules/ingestion/ingestion.module";
 import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 import { BookingModule } from "./modules/booking/booking.module";
 import { BillingModule } from "./modules/billing/billing.module";
+import { EmailModule } from "./modules/email/email.module";
+import { ProfileModule } from "./modules/profile/profile.module";
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { BillingModule } from "./modules/billing/billing.module";
     KnowledgeModule,
     BookingModule,
     BillingModule,
+    EmailModule,
+    ProfileModule,
   ],
   providers: [
     {

@@ -165,6 +165,9 @@ export class AuthService {
             "staff-availability:write",
             "billing:read",
             "billing:write",
+            "org:members:read",
+            "org:members:write",
+            "org:members:delete",
           ]),
         },
       });

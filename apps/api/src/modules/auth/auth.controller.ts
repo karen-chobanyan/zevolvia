@@ -3,10 +3,15 @@ import {
   Controller,
   Get,
   Post,
+  Query,
   Request,
   UnauthorizedException,
+  NotFoundException,
+  BadRequestException,
   Res,
   UseGuards,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import type { Response } from "express";
 import { AuthService, AuthTokens } from "./auth.service";
@@ -14,6 +19,7 @@ import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { LocalAuthGuard } from "./guards/local-auth.guard";
 import { User } from "../identity/entities/user.entity";
 import { JwtPayload } from "./types/jwt-payload";
+import { OrgService } from "../identity/services/org.service";
 
 type RegisterBody = {
   email: string;
@@ -23,9 +29,18 @@ type RegisterBody = {
   orgName?: string;
 };
 
+type AcceptInviteBody = {
+  token: string;
+  password: string;
+};
+
 @Controller("auth")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    @Inject(forwardRef(() => OrgService))
+    private readonly orgService: OrgService,
+  ) {}
 
   @UseGuards(LocalAuthGuard)
   @Post("login")
@@ -81,6 +96,38 @@ export class AuthController {
   @Get("me")
   me(@Request() req: { user: JwtPayload }) {
     return req.user;
+  }
+
+  @Get("invite")
+  async getInvite(@Query("token") token: string) {
+    if (!token) {
+      throw new BadRequestException("Token is required");
+    }
+    const invite = await this.orgService.getInviteByToken(token);
+    if (!invite) {
+      throw new NotFoundException("Invite not found or has expired");
+    }
+    if (invite.expiresAt < new Date()) {
+      throw new BadRequestException("Invite has expired");
+    }
+    return {
+      email: invite.email,
+      name: invite.name,
+      orgName: invite.org?.name,
+      roleName: invite.role?.name,
+    };
+  }
+
+  @Post("accept-invite")
+  async acceptInvite(@Body() body: AcceptInviteBody, @Res({ passthrough: true }) res: Response) {
+    if (!body.token || !body.password) {
+      throw new BadRequestException("Token and password are required");
+    }
+
+    const { user, membership } = await this.orgService.acceptInvite(body.token, body.password);
+    const tokens = await this.authService.login(user, membership.orgId);
+    this.setAuthCookies(res, tokens);
+    return { ok: true };
   }
 
   private setAuthCookies(res: Response, tokens: AuthTokens) {
