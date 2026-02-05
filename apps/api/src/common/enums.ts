@@ -48,3 +48,12 @@ export const ALLOWED_FILE_TYPES = [
 ] as const;
 
 export type AllowedFileType = (typeof ALLOWED_FILE_TYPES)[number];
+
+export enum BookingStatus {
+  Scheduled = "scheduled",
+  Confirmed = "confirmed",
+  InProgress = "in_progress",
+  Completed = "completed",
+  Cancelled = "cancelled",
+  NoShow = "no_show",
+}

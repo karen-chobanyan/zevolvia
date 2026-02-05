@@ -1,0 +1,269 @@
+import { Injectable, NotFoundException, BadRequestException } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Booking } from "../entities/booking.entity";
+import { Service } from "../entities/service.entity";
+import { CreateBookingDto, UpdateBookingDto, CheckAvailabilityDto } from "../dto/booking.dto";
+import { BookingStatus } from "../../../common/enums";
+
+export interface ListBookingsOptions {
+  orgId: string;
+  staffId?: string;
+  clientId?: string;
+  status?: BookingStatus;
+  startDate?: Date;
+  endDate?: Date;
+  page?: number;
+  limit?: number;
+}
+
+export interface PaginatedBookings {
+  items: Booking[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+@Injectable()
+export class BookingsService {
+  constructor(
+    @InjectRepository(Booking)
+    private readonly bookingRepository: Repository<Booking>,
+    @InjectRepository(Service)
+    private readonly serviceRepository: Repository<Service>,
+  ) {}
+
+  async create(orgId: string, dto: CreateBookingDto): Promise<Booking> {
+    // Get service to calculate end time
+    const service = await this.serviceRepository.findOne({
+      where: { id: dto.serviceId, orgId },
+    });
+
+    if (!service) {
+      throw new NotFoundException("Service not found");
+    }
+
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
+
+    // Check for conflicts
+    const hasConflict = await this.checkConflict(dto.staffId, startTime, endTime);
+
+    if (hasConflict) {
+      throw new BadRequestException("This time slot is already booked");
+    }
+
+    const booking = this.bookingRepository.create({
+      orgId,
+      clientId: dto.clientId ?? null,
+      clientName: dto.clientName ?? null,
+      staffId: dto.staffId,
+      serviceId: dto.serviceId,
+      startTime,
+      endTime,
+      status: BookingStatus.Scheduled,
+      notes: dto.notes ?? null,
+    });
+
+    const saved = await this.bookingRepository.save(booking);
+    return this.findById(saved.id, orgId);
+  }
+
+  async findAll(options: ListBookingsOptions): Promise<PaginatedBookings> {
+    const { orgId, staffId, clientId, status, startDate, endDate, page = 1, limit = 20 } = options;
+
+    const queryBuilder = this.bookingRepository
+      .createQueryBuilder("booking")
+      .leftJoinAndSelect("booking.client", "client")
+      .leftJoinAndSelect("booking.staff", "staff")
+      .leftJoinAndSelect("booking.service", "service")
+      .where("booking.orgId = :orgId", { orgId });
+
+    if (staffId) {
+      queryBuilder.andWhere("booking.staffId = :staffId", { staffId });
+    }
+
+    if (clientId) {
+      queryBuilder.andWhere("booking.clientId = :clientId", { clientId });
+    }
+
+    if (status) {
+      queryBuilder.andWhere("booking.status = :status", { status });
+    }
+
+    if (startDate) {
+      queryBuilder.andWhere("booking.startTime >= :startDate", { startDate });
+    }
+
+    if (endDate) {
+      queryBuilder.andWhere("booking.endTime <= :endDate", { endDate });
+    }
+
+    const [items, total] = await queryBuilder
+      .orderBy("booking.startTime", "ASC")
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async findForCalendar(
+    orgId: string,
+    startDate: Date,
+    endDate: Date,
+    staffId?: string,
+  ): Promise<Booking[]> {
+    const queryBuilder = this.bookingRepository
+      .createQueryBuilder("booking")
+      .leftJoinAndSelect("booking.client", "client")
+      .leftJoinAndSelect("booking.staff", "staff")
+      .leftJoinAndSelect("booking.service", "service")
+      .where("booking.orgId = :orgId", { orgId })
+      .andWhere("booking.startTime >= :startDate", { startDate })
+      .andWhere("booking.endTime <= :endDate", { endDate })
+      .andWhere("booking.status NOT IN (:...excluded)", {
+        excluded: [BookingStatus.Cancelled],
+      });
+
+    if (staffId) {
+      queryBuilder.andWhere("booking.staffId = :staffId", { staffId });
+    }
+
+    return queryBuilder.orderBy("booking.startTime", "ASC").getMany();
+  }
+
+  async findById(id: string, orgId: string): Promise<Booking> {
+    const booking = await this.bookingRepository.findOne({
+      where: { id, orgId },
+      relations: ["client", "staff", "service"],
+    });
+
+    if (!booking) {
+      throw new NotFoundException("Booking not found");
+    }
+
+    return booking;
+  }
+
+  async update(id: string, orgId: string, dto: UpdateBookingDto): Promise<Booking> {
+    const booking = await this.findById(id, orgId);
+
+    let startTime = booking.startTime;
+    let endTime = booking.endTime;
+    let serviceId = booking.serviceId;
+
+    // If service is being changed, recalculate end time
+    if (dto.serviceId && dto.serviceId !== booking.serviceId) {
+      const service = await this.serviceRepository.findOne({
+        where: { id: dto.serviceId, orgId },
+      });
+
+      if (!service) {
+        throw new NotFoundException("Service not found");
+      }
+
+      serviceId = dto.serviceId;
+      startTime = dto.startTime ? new Date(dto.startTime) : booking.startTime;
+      endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
+    } else if (dto.startTime) {
+      // If only start time is changing, recalculate with current service
+      const service = await this.serviceRepository.findOne({
+        where: { id: serviceId, orgId },
+      });
+
+      if (service) {
+        startTime = new Date(dto.startTime);
+        endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
+      }
+    }
+
+    // Check for conflicts if time or staff changed
+    const staffId = dto.staffId ?? booking.staffId;
+    const timeOrStaffChanged =
+      dto.startTime || dto.staffId || (dto.serviceId && dto.serviceId !== booking.serviceId);
+
+    if (timeOrStaffChanged) {
+      const hasConflict = await this.checkConflict(staffId, startTime, endTime, id);
+
+      if (hasConflict) {
+        throw new BadRequestException("This time slot is already booked");
+      }
+    }
+
+    const updatedBooking = {
+      ...booking,
+      ...(dto.clientId !== undefined && { clientId: dto.clientId }),
+      ...(dto.clientName !== undefined && { clientName: dto.clientName }),
+      ...(dto.staffId !== undefined && { staffId: dto.staffId }),
+      serviceId,
+      startTime,
+      endTime,
+      ...(dto.status !== undefined && { status: dto.status }),
+      ...(dto.notes !== undefined && { notes: dto.notes }),
+    };
+
+    await this.bookingRepository.save(updatedBooking);
+    return this.findById(id, orgId);
+  }
+
+  async cancel(id: string, orgId: string): Promise<Booking> {
+    const booking = await this.findById(id, orgId);
+
+    if (booking.status === BookingStatus.Cancelled) {
+      throw new BadRequestException("Booking is already cancelled");
+    }
+
+    const updatedBooking = {
+      ...booking,
+      status: BookingStatus.Cancelled,
+    };
+
+    await this.bookingRepository.save(updatedBooking);
+    return this.findById(id, orgId);
+  }
+
+  async checkAvailability(dto: CheckAvailabilityDto): Promise<boolean> {
+    const startTime = new Date(dto.startTime);
+    const endTime = new Date(dto.endTime);
+
+    const hasConflict = await this.checkConflict(
+      dto.staffId,
+      startTime,
+      endTime,
+      dto.excludeBookingId,
+    );
+
+    return !hasConflict;
+  }
+
+  private async checkConflict(
+    staffId: string,
+    startTime: Date,
+    endTime: Date,
+    excludeBookingId?: string,
+  ): Promise<boolean> {
+    const queryBuilder = this.bookingRepository
+      .createQueryBuilder("booking")
+      .where("booking.staffId = :staffId", { staffId })
+      .andWhere("booking.status NOT IN (:...excluded)", {
+        excluded: [BookingStatus.Cancelled, BookingStatus.NoShow],
+      })
+      .andWhere("booking.startTime < :endTime", { endTime })
+      .andWhere("booking.endTime > :startTime", { startTime });
+
+    if (excludeBookingId) {
+      queryBuilder.andWhere("booking.id != :excludeBookingId", { excludeBookingId });
+    }
+
+    const count = await queryBuilder.getCount();
+    return count > 0;
+  }
+}

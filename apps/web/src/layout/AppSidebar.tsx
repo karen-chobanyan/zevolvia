@@ -42,6 +42,21 @@ const navItems: NavItem[] = [
     path: "/dashboard",
   },
   {
+    icon: <CalenderIcon />,
+    name: "Calendar",
+    path: "/dashboard/calendar",
+  },
+  {
+    icon: <ListIcon />,
+    name: "Services",
+    path: "/dashboard/services",
+  },
+  {
+    icon: <UserCircleIcon />,
+    name: "Clients",
+    path: "/dashboard/clients",
+  },
+  {
     icon: <ChatIcon />,
     name: "Chat",
     path: "/dashboard/chat",

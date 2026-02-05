@@ -13,6 +13,7 @@ import { FilesModule } from "./modules/files/files.module";
 import { IdentityModule } from "./modules/identity/identity.module";
 import { IngestionModule } from "./modules/ingestion/ingestion.module";
 import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
+import { BookingModule } from "./modules/booking/booking.module";
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
     IdentityModule,
     IngestionModule,
     KnowledgeModule,
+    BookingModule,
   ],
   providers: [
     {

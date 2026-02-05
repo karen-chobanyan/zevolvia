@@ -11,10 +11,10 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: {
     template: "%s | SalonIQ",
-    default: "SalonIQ - AI-Driven SaaS for Luxury Salons",
+    default: "SalonIQ - SMS Booking AI for Salons",
   },
   description:
-    "Automate bookings, personalized client experiences, and scale revenue with SalonIQ's intuitive AI suite.",
+    "The SMS booking assistant that plugs into Vagaro, Fresha, or Boulevard so clients can book like they are texting a friend.",
 };
 
 const inter = Inter({
