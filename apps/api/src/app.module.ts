@@ -14,6 +14,7 @@ import { IdentityModule } from "./modules/identity/identity.module";
 import { IngestionModule } from "./modules/ingestion/ingestion.module";
 import { KnowledgeModule } from "./modules/knowledge/knowledge.module";
 import { BookingModule } from "./modules/booking/booking.module";
+import { BillingModule } from "./modules/billing/billing.module";
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { BookingModule } from "./modules/booking/booking.module";
     IngestionModule,
     KnowledgeModule,
     BookingModule,
+    BillingModule,
   ],
   providers: [
     {

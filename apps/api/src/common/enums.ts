@@ -57,3 +57,12 @@ export enum BookingStatus {
   Cancelled = "cancelled",
   NoShow = "no_show",
 }
+
+export enum SubscriptionStatus {
+  Trialing = "trialing",
+  Active = "active",
+  TrialExpired = "trial_expired",
+  Canceled = "canceled",
+  Incomplete = "incomplete",
+  PastDue = "past_due",
+}
