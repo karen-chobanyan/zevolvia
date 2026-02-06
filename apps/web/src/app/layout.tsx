@@ -1,12 +1,18 @@
 import { SidebarProvider } from "@/context/SidebarContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { MantineProvider, createTheme } from "@mantine/core";
+import "@mantine/core/styles.css";
+import "@mantine/dates/styles.css";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { ReactNode } from "react";
-// import "simplebar-react/dist/simplebar.min.css";
-// import "swiper/swiper-bundle.css";
 import "./globals.css";
+
+const mantineTheme = createTheme({
+  primaryColor: "blue",
+  fontFamily: "inherit",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -38,9 +44,11 @@ export default function RootLayout({
         className={`${inter.variable} ${playfair.variable} font-sans antialiased dark:bg-gray-900`}
         suppressHydrationWarning
       >
-        <ThemeProvider>
-          <SidebarProvider>{children}</SidebarProvider>
-        </ThemeProvider>
+        <MantineProvider theme={mantineTheme}>
+          <ThemeProvider>
+            <SidebarProvider>{children}</SidebarProvider>
+          </ThemeProvider>
+        </MantineProvider>
         {/* <GoogleAnalytics gaId="G-CK419QBRWM" /> */}
       </body>
     </html>

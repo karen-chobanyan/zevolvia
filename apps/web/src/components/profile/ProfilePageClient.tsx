@@ -53,7 +53,7 @@ export default function ProfilePageClient() {
     setProfile((prev) => (prev ? { ...prev, user: updatedUser } : prev));
   };
 
-  const handleOrgSave = async (payload: { name: string }) => {
+  const handleOrgSave = async (payload: { name?: string; phone?: string | null }) => {
     if (!profile) {
       await loadProfile();
       return;

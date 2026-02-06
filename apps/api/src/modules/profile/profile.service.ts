@@ -137,6 +137,7 @@ export class ProfileService {
         id: org.id,
         name: org.name,
         slug: org.slug,
+        phone: org.phone,
         ownerUserId,
         createdAt: org.createdAt,
       },
@@ -253,12 +254,23 @@ export class ProfileService {
       throw new ForbiddenException("Only organization owners can update org details");
     }
 
-    const name = dto.name?.trim();
-    if (!name) {
-      throw new BadRequestException("Organization name is required");
+    const updates: Partial<Org> = {};
+    if (dto.name !== undefined) {
+      const name = dto.name.trim();
+      if (!name) {
+        throw new BadRequestException("Organization name is required");
+      }
+      updates.name = name;
+    }
+    if (dto.phone !== undefined) {
+      updates.phone = this.normalizeOptional(dto.phone);
     }
 
-    await this.orgRepo.update({ id: orgId }, { name });
+    if (!Object.keys(updates).length) {
+      throw new BadRequestException("At least one field is required");
+    }
+
+    await this.orgRepo.update({ id: orgId }, updates);
     const org = await this.orgRepo.findOne({ where: { id: orgId } });
     if (!org) {
       throw new NotFoundException("Organization not found");
@@ -270,6 +282,7 @@ export class ProfileService {
         id: org.id,
         name: org.name,
         slug: org.slug,
+        phone: org.phone,
         ownerUserId,
         createdAt: org.createdAt,
       },

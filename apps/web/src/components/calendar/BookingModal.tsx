@@ -1,6 +1,8 @@
 "use client";
 
 import { FormEvent, useEffect, useState, useRef } from "react";
+import { DateTimePicker } from "@mantine/dates";
+import dayjs from "dayjs";
 import { Modal } from "@/ui/modal";
 import { BookingApi } from "@/services/BookingApi.service";
 import { Service, StaffMember, Client } from "@/types/booking";
@@ -36,14 +38,6 @@ const getErrorMessage = (error: unknown, fallback: string) => {
   return fallback;
 };
 
-const formatDateForInput = (date: Date): string => {
-  return date.toISOString().split("T")[0];
-};
-
-const formatTimeForInput = (date: Date): string => {
-  return date.toTimeString().slice(0, 5);
-};
-
 export default function BookingModal({
   isOpen,
   onClose,
@@ -58,8 +52,7 @@ export default function BookingModal({
   const [clientInput, setClientInput] = useState("");
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
   const [isWalkIn, setIsWalkIn] = useState(false);
-  const [selectedDate, setSelectedDate] = useState("");
-  const [selectedTime, setSelectedTime] = useState("");
+  const [selectedDateTime, setSelectedDateTime] = useState<Date | null>(null);
   const [notes, setNotes] = useState("");
 
   const [clients, setClients] = useState<Client[]>([]);
@@ -76,13 +69,7 @@ export default function BookingModal({
   useEffect(() => {
     if (isOpen) {
       if (initialDate) {
-        setSelectedDate(formatDateForInput(initialDate));
-        // Only set time if it's not midnight (meaning a specific time was selected)
-        const hours = initialDate.getHours();
-        const minutes = initialDate.getMinutes();
-        if (hours !== 0 || minutes !== 0) {
-          setSelectedTime(formatTimeForInput(initialDate));
-        }
+        setSelectedDateTime(initialDate);
       }
       if (initialStaffId) {
         setStaffId(initialStaffId);
@@ -98,8 +85,7 @@ export default function BookingModal({
       setClientInput("");
       setSelectedClient(null);
       setIsWalkIn(false);
-      setSelectedDate("");
-      setSelectedTime("");
+      setSelectedDateTime(null);
       setNotes("");
       setClients([]);
       setShowClientDropdown(false);
@@ -176,13 +162,8 @@ export default function BookingModal({
       return;
     }
 
-    if (!selectedDate) {
-      setNotice({ type: "error", message: "Please select a date" });
-      return;
-    }
-
-    if (!selectedTime) {
-      setNotice({ type: "error", message: "Please select a time" });
+    if (!selectedDateTime) {
+      setNotice({ type: "error", message: "Please select date and time" });
       return;
     }
 
@@ -191,15 +172,12 @@ export default function BookingModal({
       return;
     }
 
-    // Construct the start time
-    const startTime = new Date(`${selectedDate}T${selectedTime}`);
-
     setSubmitting(true);
     try {
       await BookingApi.createBooking({
         staffId,
         serviceId,
-        startTime: startTime.toISOString(),
+        startTime: selectedDateTime.toISOString(),
         clientId: selectedClient?.id,
         clientName: isWalkIn ? "Walk-in" : !selectedClient ? clientInput.trim() : undefined,
         notes: notes.trim() || undefined,
@@ -212,11 +190,19 @@ export default function BookingModal({
     }
   };
 
+  // Get minimum datetime (now, rounded to next 15 min)
+  const getMinDateTime = () => {
+    const now = dayjs();
+    const minutes = now.minute();
+    const roundedMinutes = Math.ceil(minutes / 15) * 15;
+    return now.minute(roundedMinutes).second(0).toDate();
+  };
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      className="relative w-full max-w-[600px] m-5 sm:m-0 rounded-3xl bg-white p-6 lg:p-8 dark:bg-gray-900"
+      className="relative w-full max-w-[500px] m-5 sm:m-0 rounded-3xl bg-white p-6 lg:p-8 dark:bg-gray-900"
     >
       <div>
         <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">New Booking</h3>
@@ -360,31 +346,32 @@ export default function BookingModal({
         </div>
 
         {/* Date and Time Selection */}
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Date *
-            </label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              min={new Date().toISOString().split("T")[0]}
-              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
-              Time *
-            </label>
-            <input
-              type="time"
-              value={selectedTime}
-              onChange={(e) => setSelectedTime(e.target.value)}
-              step="900"
-              className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white"
-            />
-          </div>
+        <div>
+          <label className="mb-2 block text-xs font-medium text-gray-700 dark:text-gray-300">
+            Date & Time *
+          </label>
+          <DateTimePicker
+            value={selectedDateTime}
+            onChange={(date: any) => setSelectedDateTime(date)}
+            minDate={getMinDateTime()}
+            placeholder="Select date and time..."
+            valueFormat="MMMM D, YYYY h:mm A"
+            size="md"
+            radius="md"
+            classNames={{
+              input:
+                "h-11 border-gray-300 bg-transparent text-sm text-gray-800 dark:border-gray-700 dark:bg-gray-900 dark:text-white",
+            }}
+            styles={{
+              input: {
+                height: "44px",
+              },
+            }}
+            popoverProps={{
+              withinPortal: true,
+              zIndex: 200000,
+            }}
+          />
         </div>
 
         {/* Notes */}

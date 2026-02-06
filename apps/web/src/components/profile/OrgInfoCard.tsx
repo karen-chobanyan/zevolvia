@@ -10,6 +10,7 @@ export type OrgInfo = {
   id?: string;
   name?: string | null;
   slug?: string | null;
+  phone?: string | null;
   ownerUserId?: string | null;
   createdAt?: string | Date | null;
 };
@@ -23,7 +24,7 @@ type OrgInfoCardProps = {
   org: OrgInfo | null;
   membership?: MembershipInfo | null;
   canEdit: boolean;
-  onSave: (payload: { name: string }) => Promise<void>;
+  onSave: (payload: { name?: string; phone?: string | null }) => Promise<void>;
 };
 
 function getDisplayValue(value?: string | null) {
@@ -50,12 +51,12 @@ function getErrorMessage(error: any, fallback: string) {
 
 export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInfoCardProps) {
   const { isOpen, openModal, closeModal } = useModal();
-  const [form, setForm] = useState({ name: "" });
+  const [form, setForm] = useState({ name: "", phone: "" });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setForm({ name: org?.name ?? "" });
+    setForm({ name: org?.name ?? "", phone: org?.phone ?? "" });
   }, [org]);
 
   const handleSave = async () => {
@@ -63,14 +64,18 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
       return;
     }
     const nextName = form.name.trim();
-    if (!nextName) {
-      setError("Organization name is required.");
+    const nextPhone = form.phone.trim();
+    if (!nextName && !nextPhone) {
+      setError("Organization name or phone is required.");
       return;
     }
     setSaving(true);
     setError(null);
     try {
-      await onSave({ name: nextName });
+      await onSave({
+        name: nextName || undefined,
+        phone: nextPhone || null,
+      });
       closeModal();
     } catch (err: any) {
       setError(getErrorMessage(err, "Failed to update organization."));
@@ -103,6 +108,13 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">Slug</p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {getDisplayValue(org?.slug)}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">Phone</p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {getDisplayValue(org?.phone)}
               </p>
             </div>
 
@@ -188,6 +200,15 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
               <div>
                 <Label>Slug</Label>
                 <Input type="text" value={org?.slug ?? ""} readOnly />
+              </div>
+
+              <div>
+                <Label>Phone</Label>
+                <Input
+                  type="text"
+                  value={form.phone}
+                  onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                />
               </div>
             </div>
 

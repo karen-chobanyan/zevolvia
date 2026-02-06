@@ -11,6 +11,9 @@ export class Org extends BaseModel {
   @Column({ type: "text", unique: true })
   slug!: string;
 
+  @Column({ type: "text", nullable: true })
+  phone!: string | null;
+
   @OneToMany(() => Membership, (membership) => membership.org)
   memberships!: Membership[];
 
