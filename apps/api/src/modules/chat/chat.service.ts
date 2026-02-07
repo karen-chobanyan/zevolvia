@@ -16,12 +16,18 @@ import { EmbeddingService } from "../ingestion/services/embedding.service";
 import { ChatMessage } from "./entities/chat-message.entity";
 import { ChatSession } from "./entities/chat-session.entity";
 import { AskDto } from "./dto/ask.dto";
+import { BOOKING_TOOLS } from "./tools/tool-definitions";
+import { buildConversationHistory } from "./tools/conversation-builder";
+import { ChatToolExecutor } from "./tools/tool-executor";
+import { UserProfile } from "../profile/entities/user-profile.entity";
+import { Membership } from "../identity/entities/membership.entity";
 
 const DEFAULT_TOP_K = 5;
 const MAX_TOP_K = 20;
 const MAX_QUESTION_LENGTH = 4000;
 const MAX_CONTEXT_CHARS = 8000;
 const MAX_CHUNK_CHARS = 1200;
+const MAX_TOOL_ITERATIONS = 8;
 
 type RetrievalFilters = {
   knowledgeBaseId?: string;
@@ -49,16 +55,22 @@ export class ChatService {
   private readonly chatTemperature: number;
   private readonly chatMaxTokens?: number;
   private readonly systemPrompt: string;
+  private readonly defaultTimeZone: string = "UTC";
 
   constructor(
     @InjectPinoLogger(ChatService.name)
     private readonly logger: PinoLogger,
     private readonly configService: ConfigService,
     private readonly embeddingService: EmbeddingService,
+    private readonly toolExecutor: ChatToolExecutor,
     @InjectRepository(ChatSession)
     private readonly sessionRepo: Repository<ChatSession>,
     @InjectRepository(ChatMessage)
     private readonly messageRepo: Repository<ChatMessage>,
+    @InjectRepository(UserProfile)
+    private readonly userProfileRepo: Repository<UserProfile>,
+    @InjectRepository(Membership)
+    private readonly membershipRepo: Repository<Membership>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {
@@ -76,6 +88,7 @@ export class ChatService {
     const parsedMaxTokens = maxTokens ? Number(maxTokens) : NaN;
     this.chatMaxTokens = Number.isFinite(parsedMaxTokens) ? parsedMaxTokens : undefined;
     this.systemPrompt = this.loadSystemPrompt();
+    this.defaultTimeZone = this.configService.get<string>("DEFAULT_TIME_ZONE") || "UTC";
   }
 
   async createSession(userId: string, orgId: string, title?: string) {
@@ -125,6 +138,8 @@ export class ChatService {
   }
 
   async ask(sessionId: string, userId: string, orgId: string, dto: AskDto) {
+    const requestStartMs = Date.now();
+    this.logger.info({ sessionId, orgId, userId }, "Chat request received");
     const session = await this.getSessionOrThrow(sessionId, userId, orgId);
     const question = dto?.question?.trim();
 
@@ -134,6 +149,17 @@ export class ChatService {
     if (question.length > MAX_QUESTION_LENGTH) {
       throw new BadRequestException("Question is too long.");
     }
+
+    this.logger.info(
+      {
+        sessionId,
+        orgId,
+        questionLength: question.length,
+        hasSystemOverride: Boolean(dto?.system?.trim()),
+        kbOnly: dto?.kbOnly ?? true,
+      },
+      "Question validated",
+    );
 
     const userMessage = await this.messageRepo.save(
       this.messageRepo.create({
@@ -147,55 +173,76 @@ export class ChatService {
     const k = Math.min(Math.max(dto?.k ?? DEFAULT_TOP_K, 1), MAX_TOP_K);
     const filters = this.normalizeFilters(dto?.where);
     let citations: CitationItem[] = [];
-    let context = "";
+    let ragContext = "";
 
     try {
+      const ragStartMs = Date.now();
       citations = await this.retrieveCitations(orgId, question, k, filters);
-      context = this.buildContext(citations);
+      ragContext = this.buildContext(citations);
+      this.logger.info(
+        {
+          sessionId,
+          orgId,
+          citations: citations.length,
+          ragChars: ragContext.length,
+          k,
+          filters,
+          ragMs: Date.now() - ragStartMs,
+        },
+        "RAG context resolved",
+      );
     } catch (error) {
       this.logger.error({ err: (error as Error).message }, "Failed to retrieve citations");
     }
 
-    const shouldUseContextOnly = dto?.kbOnly ?? true;
-    if (shouldUseContextOnly && citations.length === 0) {
-      const assistantMessage = await this.persistAssistantMessage(
-        session.id,
-        "I don't know.",
-        citations,
-      );
-      await this.touchSession(session, question);
+    const priorMessages = await this.messageRepo.find({
+      where: { sessionId: session.id },
+      order: { createdAt: "ASC" },
+    });
 
-      return {
-        sessionId: session.id,
-        userMessage,
-        assistantMessage,
-      };
-    }
+    const history = buildConversationHistory(priorMessages.filter((m) => m.id !== userMessage.id));
+
+    this.logger.info(
+      {
+        sessionId,
+        orgId,
+        historyCount: history.length,
+        priorMessageCount: priorMessages.length,
+      },
+      "Conversation history prepared",
+    );
+
+    const timeZone = await this.resolveUserTimeZone(userId, orgId);
+    const dateContext = this.buildDateContext(timeZone);
+    const dateBlock = `## Current date\nToday is ${dateContext.dateIso} (${dateContext.dayName}) in ${dateContext.timeZone}. 
+    Use this to interpret relative dates like "today" and "tomorrow".`;
+
+    const baseSystemContent = `${dto?.system?.trim() || this.systemPrompt}\n\n${dateBlock}`;
+    const systemContent = ragContext
+      ? `${baseSystemContent}\n\n## Salon context (from documents)\n\n${ragContext}`
+      : baseSystemContent;
+
+    const messages: OpenAI.ChatCompletionMessageParam[] = [
+      { role: "system", content: systemContent },
+      ...history,
+      { role: "user", content: question },
+    ];
 
     let answer = "I don't know.";
     let usage: OpenAI.CompletionUsage | undefined;
 
     try {
-      const response = await this.openai.chat.completions.create({
-        model: this.chatModel,
-        temperature: this.chatTemperature,
-        max_tokens: this.chatMaxTokens,
-        messages: [
-          {
-            role: "system",
-            content: dto?.system?.trim() || this.systemPrompt,
-          },
-          {
-            role: "user",
-            content: context ? `Context:\n${context}\n\nQuestion:\n${question}` : question,
-          },
-        ],
+      this.logger.info({ sessionId, orgId, toolCount: BOOKING_TOOLS.length }, "Starting tool loop");
+      const result = await this.executeToolLoop(messages, orgId, {
+        timeZone,
+        today: dateContext.dateIso,
       });
-
-      answer = response.choices?.[0]?.message?.content?.trim() || "I don't know.";
-      usage = response.usage;
+      answer = result.answer;
+      usage = result.usage;
     } catch (error) {
-      this.logger.error({ err: (error as Error).message }, "Chat completion failed");
+      const errPayload =
+        error instanceof Error ? { message: error.message, stack: error.stack } : { error };
+      this.logger.error({ err: errPayload }, "Chat completion failed");
       await this.persistAssistantMessage(
         session.id,
         "Sorry, I could not reach the knowledge service.",
@@ -220,10 +267,140 @@ export class ChatService {
 
     await this.touchSession(session, question);
 
+    this.logger.info(
+      {
+        sessionId,
+        orgId,
+        totalMs: Date.now() - requestStartMs,
+        usage,
+      },
+      "Chat request completed",
+    );
+
     return {
       sessionId: session.id,
       userMessage,
       assistantMessage,
+    };
+  }
+
+  private async executeToolLoop(
+    initialMessages: ReadonlyArray<OpenAI.ChatCompletionMessageParam>,
+    orgId: string,
+    toolContext: { timeZone?: string; today?: string },
+  ): Promise<{ answer: string; usage?: OpenAI.CompletionUsage }> {
+    let messages = [...initialMessages];
+    let lastUsage: OpenAI.CompletionUsage | undefined;
+
+    for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
+      const iterationStartMs = Date.now();
+      this.logger.info({ iteration: i + 1, orgId }, "Tool loop iteration");
+      const response = await this.openai.chat.completions.create({
+        model: this.chatModel,
+        temperature: this.chatTemperature,
+        max_tokens: this.chatMaxTokens,
+        messages,
+        tools: BOOKING_TOOLS,
+      });
+
+      const choice = response.choices?.[0];
+      lastUsage = response.usage ?? lastUsage;
+
+      if (!choice) {
+        this.logger.warn({ orgId, iteration: i + 1 }, "No completion choice returned");
+        return { answer: "I don't know.", usage: lastUsage };
+      }
+
+      const assistantMessage = choice.message;
+      const toolCalls = assistantMessage.tool_calls;
+
+      if (!toolCalls || toolCalls.length === 0) {
+        const text = assistantMessage.content?.trim() || "I don't know.";
+        this.logger.info(
+          { orgId, iteration: i + 1, iterationMs: Date.now() - iterationStartMs },
+          "Tool loop completed without tool calls",
+        );
+        return { answer: text, usage: lastUsage };
+      }
+
+      messages = [...messages, assistantMessage];
+
+      this.logger.info(
+        {
+          orgId,
+          toolCalls: toolCalls.length,
+          tools: toolCalls.map((tc) => tc.function.name),
+          iterationMs: Date.now() - iterationStartMs,
+        },
+        "Executing tool calls",
+      );
+
+      const toolResults = await Promise.all(
+        toolCalls.map((tc) => {
+          const rawArgs = tc.function.arguments;
+          let args: Record<string, unknown> = {};
+          if (rawArgs && typeof rawArgs === "string") {
+            try {
+              args = JSON.parse(rawArgs) as Record<string, unknown>;
+            } catch (error) {
+              this.logger.warn(
+                {
+                  orgId,
+                  functionName: tc.function.name,
+                  toolCallId: tc.id,
+                  rawArgs,
+                  error: error instanceof Error ? error.message : String(error),
+                },
+                "Invalid tool arguments JSON",
+              );
+              return {
+                toolCallId: tc.id,
+                functionName: tc.function.name,
+                result: JSON.stringify({
+                  error: "Invalid tool arguments JSON",
+                }),
+              };
+            }
+          } else if (rawArgs && typeof rawArgs !== "string") {
+            this.logger.warn(
+              {
+                orgId,
+                functionName: tc.function.name,
+                toolCallId: tc.id,
+                rawArgsType: typeof rawArgs,
+              },
+              "Tool arguments payload is not a string",
+            );
+            return {
+              toolCallId: tc.id,
+              functionName: tc.function.name,
+              result: JSON.stringify({
+                error: "Tool arguments payload is not a string",
+              }),
+            };
+          }
+
+          return this.toolExecutor.execute(tc.id, tc.function.name, args, {
+            orgId,
+            timeZone: toolContext.timeZone,
+            today: toolContext.today,
+          });
+        }),
+      );
+
+      const toolMessages: OpenAI.ChatCompletionToolMessageParam[] = toolResults.map((tr) => ({
+        role: "tool" as const,
+        tool_call_id: tr.toolCallId,
+        content: tr.result,
+      }));
+
+      messages = [...messages, ...toolMessages];
+    }
+
+    this.logger.warn("Tool loop reached maximum iterations");
+    return {
+      answer: "I'm having trouble processing your request. Could you try rephrasing?",
+      usage: lastUsage,
     };
   }
 
@@ -400,6 +577,63 @@ export class ChatService {
       knowledgeBaseId,
       documentId,
       fileId,
+    };
+  }
+
+  private async resolveUserTimeZone(userId: string, orgId: string): Promise<string> {
+    const membership = await this.membershipRepo.findOne({
+      where: { userId, orgId },
+      select: { id: true },
+    });
+
+    if (!membership) {
+      return this.defaultTimeZone;
+    }
+
+    const profile = await this.userProfileRepo
+      .createQueryBuilder("profile")
+      .innerJoin(
+        Membership,
+        "membership",
+        "membership.userId = profile.userId AND membership.orgId = :orgId",
+        { orgId },
+      )
+      .where("profile.userId = :userId", { userId })
+      .select(["profile.timeZone"])
+      .getOne();
+
+    const candidate = profile?.timeZone?.trim();
+    if (!candidate) {
+      return this.defaultTimeZone;
+    }
+
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
+      return candidate;
+    } catch {
+      return this.defaultTimeZone;
+    }
+  }
+
+  private buildDateContext(timeZone: string) {
+    const now = new Date();
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      weekday: "long",
+    }).formatToParts(now);
+
+    const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+    const month = parts.find((p) => p.type === "month")?.value ?? "01";
+    const day = parts.find((p) => p.type === "day")?.value ?? "01";
+    const dayName = parts.find((p) => p.type === "weekday")?.value ?? "Unknown";
+
+    return {
+      timeZone,
+      dateIso: `${year}-${month}-${day}`,
+      dayName,
     };
   }
 }

@@ -82,6 +82,13 @@ export class StaffAvailabilityService {
     const targetDate = new Date(date);
     const dayOfWeek = targetDate.getDay();
 
+    console.log(
+      "########################################################################################",
+    );
+    console.log(
+      `Getting available slots for staff ${staffId} on ${date} (day of week: ${dayOfWeek}) with duration ${durationMinutes} minutes`,
+    );
+
     // Get staff availability for this day
     const availability = await this.availabilityRepository.findOne({
       where: {
