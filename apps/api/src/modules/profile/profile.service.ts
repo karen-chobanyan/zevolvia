@@ -4,7 +4,9 @@ import {
   Injectable,
   NotFoundException,
 } from "@nestjs/common";
+import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
+import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
 import { Repository } from "typeorm";
 import { MembershipStatus } from "../../common/enums";
 import { Membership } from "../identity/entities/membership.entity";
@@ -37,6 +39,7 @@ export class ProfileService {
     private readonly membershipRepo: Repository<Membership>,
     @InjectRepository(Role)
     private readonly roleRepo: Repository<Role>,
+    private readonly config: ConfigService,
   ) {}
 
   private normalizeOptional(value?: string | null) {
@@ -45,6 +48,24 @@ export class ProfileService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private normalizeOrgPhone(value?: string | null) {
+    if (value === undefined) {
+      return undefined;
+    }
+    const trimmed = value?.trim();
+    if (!trimmed) {
+      return null;
+    }
+    const defaultCountry = (this.config.get<string>("DEFAULT_PHONE_COUNTRY") || "US")
+      .trim()
+      .toUpperCase() as CountryCode;
+    const parsed = parsePhoneNumberFromString(trimmed, defaultCountry);
+    if (!parsed || !parsed.isValid()) {
+      throw new BadRequestException("Invalid phone number");
+    }
+    return parsed.format("E.164");
   }
 
   private splitName(name?: string | null) {
@@ -263,7 +284,7 @@ export class ProfileService {
       updates.name = name;
     }
     if (dto.phone !== undefined) {
-      updates.phone = this.normalizeOptional(dto.phone);
+      updates.phone = this.normalizeOrgPhone(dto.phone);
     }
 
     if (!Object.keys(updates).length) {

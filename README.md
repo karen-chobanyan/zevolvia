@@ -27,6 +27,7 @@ SalonIQ is a full-stack monorepo application that helps beauty salons manage the
 - **AI-Powered Follow-ups**: Automated client communication suggestions
 - **Document Management**: Upload, organize, and search through documents
 - **RAG System**: Semantic search using OpenAI embeddings and pgvector
+- **SMS Intake**: Capture inbound client texts via Twilio webhooks
 - **Multi-Tenant Architecture**: Organization-based data isolation
 - **Role-Based Access Control**: Granular permissions system
 - **Real-time Processing**: Async job queue for heavy operations
@@ -49,7 +50,7 @@ SalonIQ is a full-stack monorepo application that helps beauty salons manage the
 │                           API Layer                                  │
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │                    NestJS API (3001)                         │   │
-│  │    Auth │ Files │ Knowledge │ Ingestion │ Dashboard          │   │
+│  │    Auth │ Files │ Knowledge │ Ingestion │ Dashboard │ SMS    │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
@@ -252,6 +253,7 @@ saloniq/
    - Web App: http://localhost:3000
    - API: http://localhost:3001/api
    - MinIO Console: http://localhost:9001
+   - Twilio Webhook: http://localhost:3001/api/sms/twilio (configure in Twilio)
 
 ### Local Development (without Docker)
 
@@ -321,6 +323,30 @@ REDIS_PORT=6379
 # OpenAI
 OPENAI_API_KEY=sk-your-openai-api-key
 EMBEDDING_MODEL=text-embedding-3-small
+
+# Public URL (used for webhook signature validation)
+# Do not include /api at the end (e.g. https://your-domain.com)
+PUBLIC_API_URL=https://your-public-domain
+
+# Stripe (Billing)
+STRIPE_SECRET_KEY=sk_test_***
+STRIPE_WEBHOOK_SECRET=whsec_***
+STRIPE_PRICE_MONTHLY=price_***
+STRIPE_PRICE_YEARLY=price_***
+# Optional overrides
+FRONTEND_URL=http://localhost:3000
+STRIPE_SUCCESS_URL=
+STRIPE_CANCEL_URL=
+STRIPE_PORTAL_RETURN_URL=
+
+# Twilio (Inbound SMS)
+TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# Optional: set when behind a proxy / ngrok
+TWILIO_WEBHOOK_URL=https://your-public-url/api/sms/twilio
+TWILIO_VALIDATE_SIGNATURE=true
+
+# Phone normalization
+DEFAULT_PHONE_COUNTRY=US
 
 # Chunking Configuration
 CHUNK_SIZE=500
@@ -394,6 +420,48 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 | `POST` | `/api/auth/refresh`  | Refresh access token             |
 | `GET`  | `/api/auth/me`       | Get current user info            |
 
+### Profile
+
+| Method  | Endpoint           | Description                  |
+| ------- | ------------------ | ---------------------------- |
+| `GET`   | `/api/profile`     | Get user/org profile data    |
+| `PATCH` | `/api/profile`     | Update user profile fields   |
+| `PATCH` | `/api/profile/org` | Update organization settings |
+
+Update payloads:
+
+- `PATCH /api/profile`: `firstName`, `lastName`, `phone`, `avatarUrl`, `locale`, `timeZone`
+- `PATCH /api/profile/org`: `name`, `phone`
+
+### Billing (Stripe)
+
+| Method | Endpoint                         | Description                    |
+| ------ | -------------------------------- | ------------------------------ |
+| `GET`  | `/api/billing/status`            | Get billing status for org     |
+| `POST` | `/api/billing/checkout`          | Create Stripe checkout session |
+| `POST` | `/api/billing/checkout/complete` | Finalize checkout session      |
+| `POST` | `/api/billing/portal`            | Create Stripe billing portal   |
+| `POST` | `/api/billing/webhook`           | Stripe webhook endpoint        |
+
+### SMS (Twilio)
+
+| Method | Endpoint          | Description                        |
+| ------ | ----------------- | ---------------------------------- |
+| `POST` | `/api/sms/twilio` | Twilio inbound SMS webhook (TwiML) |
+
+Notes:
+
+- Twilio sends `application/x-www-form-urlencoded` parameters and expects a TwiML response.
+- Signature validation uses `X-Twilio-Signature` and the full webhook URL.
+- Org matching is based on `orgs.phone` (recommended to store the Twilio number in E.164).
+- Inbound SMS will auto-create a client record for unknown phone numbers and store the message in `sms_messages`.
+
+Setup checklist:
+
+- Set the organization phone in Settings (or via `PATCH /api/profile/org`) to the Twilio number.
+- Configure the Twilio Messaging webhook to `POST` to `/api/sms/twilio`.
+- For local dev or proxies, set `TWILIO_WEBHOOK_URL` so signature validation can compute the exact webhook URL.
+
 ### Files
 
 | Method   | Endpoint                             | Description                |
@@ -423,6 +491,41 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 | Method | Endpoint                 | Description              |
 | ------ | ------------------------ | ------------------------ |
 | `GET`  | `/api/dashboard/summary` | Get dashboard statistics |
+
+### Booking
+
+| Method   | Endpoint                           | Description         |
+| -------- | ---------------------------------- | ------------------- |
+| `GET`    | `/api/services`                    | List services       |
+| `POST`   | `/api/services`                    | Create service      |
+| `PATCH`  | `/api/services/:id`                | Update service      |
+| `DELETE` | `/api/services/:id`                | Delete service      |
+| `GET`    | `/api/clients`                     | List clients        |
+| `POST`   | `/api/clients`                     | Create client       |
+| `PATCH`  | `/api/clients/:id`                 | Update client       |
+| `DELETE` | `/api/clients/:id`                 | Delete client       |
+| `GET`    | `/api/bookings`                    | List bookings       |
+| `POST`   | `/api/bookings`                    | Create booking      |
+| `PATCH`  | `/api/bookings/:id`                | Update booking      |
+| `POST`   | `/api/bookings/:id/cancel`         | Cancel booking      |
+| `GET`    | `/api/bookings/calendar`           | Calendar events     |
+| `GET`    | `/api/bookings/check-availability` | Availability check  |
+| `GET`    | `/api/staff-availability`          | List availability   |
+| `POST`   | `/api/staff-availability`          | Create availability |
+| `PATCH`  | `/api/staff-availability/:id`      | Update availability |
+| `DELETE` | `/api/staff-availability/:id`      | Delete availability |
+
+### Organization
+
+| Method   | Endpoint                      | Description               |
+| -------- | ----------------------------- | ------------------------- |
+| `GET`    | `/api/org/members`            | List organization members |
+| `PATCH`  | `/api/org/members/:id`        | Update member role        |
+| `DELETE` | `/api/org/members/:id`        | Remove member             |
+| `GET`    | `/api/org/invites`            | List pending invites      |
+| `POST`   | `/api/org/invites`            | Create invite             |
+| `POST`   | `/api/org/invites/:id/cancel` | Cancel invite             |
+| `GET`    | `/api/org/roles`              | List available roles      |
 
 ---
 
@@ -473,20 +576,24 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 
 ### Key Tables
 
-| Table             | Description                         |
-| ----------------- | ----------------------------------- |
-| `orgs`            | Organizations/workspaces            |
-| `users`           | User accounts                       |
-| `roles`           | Organization-scoped roles           |
-| `permissions`     | Granular permission keys            |
-| `memberships`     | User-Org associations               |
-| `files`           | Uploaded file metadata              |
-| `folders`         | Hierarchical folder structure       |
-| `knowledge_bases` | RAG document collections            |
-| `documents`       | Ingested documents                  |
-| `chunks`          | Text segments with token counts     |
-| `embeddings`      | Vector embeddings (1536 dimensions) |
-| `refresh_tokens`  | Token revocation tracking           |
+| Table                   | Description                         |
+| ----------------------- | ----------------------------------- |
+| `orgs`                  | Organizations/workspaces            |
+| `users`                 | User accounts                       |
+| `roles`                 | Organization-scoped roles           |
+| `permissions`           | Granular permission keys            |
+| `memberships`           | User-Org associations               |
+| `files`                 | Uploaded file metadata              |
+| `folders`               | Hierarchical folder structure       |
+| `knowledge_bases`       | RAG document collections            |
+| `documents`             | Ingested documents                  |
+| `chunks`                | Text segments with token counts     |
+| `embeddings`            | Vector embeddings (1536 dimensions) |
+| `refresh_tokens`        | Token revocation tracking           |
+| `user_profiles`         | User profile details                |
+| `billing_customers`     | Stripe customer mapping             |
+| `billing_subscriptions` | Stripe subscription state           |
+| `sms_messages`          | Inbound SMS from Twilio             |
 
 ---
 

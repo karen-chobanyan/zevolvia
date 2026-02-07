@@ -17,6 +17,7 @@ import { BookingModule } from "./modules/booking/booking.module";
 import { BillingModule } from "./modules/billing/billing.module";
 import { EmailModule } from "./modules/email/email.module";
 import { ProfileModule } from "./modules/profile/profile.module";
+import { SmsModule } from "./modules/sms/sms.module";
 
 @Module({
   imports: [
@@ -38,6 +39,7 @@ import { ProfileModule } from "./modules/profile/profile.module";
     BillingModule,
     EmailModule,
     ProfileModule,
+    SmsModule,
   ],
   providers: [
     {
