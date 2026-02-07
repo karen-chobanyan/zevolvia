@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
+import { isValid, parseISO } from "date-fns";
 import { AvailableSlotDto, WorkingHoursDto } from "../dto/staff-availability.dto";
 import { Booking } from "../entities/booking.entity";
 import { BookingStatus } from "../../../common/enums";
@@ -22,8 +23,8 @@ export class StaffAvailabilityService {
     durationMinutes: number,
     slotIntervalMinutes = 15,
   ): Promise<AvailableSlotDto[]> {
-    const targetDate = new Date(date);
-    if (!date || Number.isNaN(targetDate.getTime())) {
+    const targetDate = parseISO(date);
+    if (!date || !isValid(targetDate)) {
       throw new BadRequestException("Invalid date format. Use YYYY-MM-DD.");
     }
 

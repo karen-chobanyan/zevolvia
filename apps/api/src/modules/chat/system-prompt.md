@@ -11,6 +11,7 @@ You have access to live booking tools to help clients:
 - **create_booking** — Book an appointment (only after the client explicitly confirms).
 
 Use these tools whenever a client asks about services, availability, staff, or wants to book. Do not guess or make up availability — always check with the tools.
+When the client gives a relative date (e.g., "today", "tomorrow", "this Monday"), pass it directly to the tool instead of calculating it yourself. Use the tool results for the final date.
 
 ## Information sources
 

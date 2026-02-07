@@ -129,7 +129,7 @@ export class ChatToolExecutor {
   ) {
     const resolvedDate = this.resolveRelativeDate(date, context);
 
-    console.log("#############################################################################");
+    console.log("#############################################################");
     console.log("Resolved date:", resolvedDate);
 
     const slots = await this.staffAvailabilityService.getAvailableSlots(
@@ -138,10 +138,19 @@ export class ChatToolExecutor {
       resolvedDate,
       durationMinutes,
     );
-    return slots.map((s) => ({
-      start: s.startTime,
-      end: s.endTime,
-    }));
+    const dayName = this.isIsoDate(resolvedDate)
+      ? (DAY_NAMES[parseISO(resolvedDate).getDay()] ?? null)
+      : null;
+
+    return {
+      date: resolvedDate,
+      dayName,
+      timeZone: context.timeZone ?? "UTC",
+      slots: slots.map((s) => ({
+        start: s.startTime,
+        end: s.endTime,
+      })),
+    };
   }
 
   private resolveRelativeDate(input: string, context: ToolExecutionContext): string {
