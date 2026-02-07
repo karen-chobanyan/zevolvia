@@ -124,6 +124,7 @@ export class BookingsController {
     }
 
     const available = await this.bookingsService.checkAvailability({
+      orgId: req.user.orgId,
       staffId,
       startTime,
       endTime,

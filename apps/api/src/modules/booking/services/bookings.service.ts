@@ -48,7 +48,7 @@ export class BookingsService {
     const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
 
     // Check for conflicts
-    const hasConflict = await this.checkConflict(dto.staffId, startTime, endTime);
+    const hasConflict = await this.checkConflict(orgId, dto.staffId, startTime, endTime);
 
     if (hasConflict) {
       throw new BadRequestException("This time slot is already booked");
@@ -191,7 +191,7 @@ export class BookingsService {
       dto.startTime || dto.staffId || (dto.serviceId && dto.serviceId !== booking.serviceId);
 
     if (timeOrStaffChanged) {
-      const hasConflict = await this.checkConflict(staffId, startTime, endTime, id);
+      const hasConflict = await this.checkConflict(orgId, staffId, startTime, endTime, id);
 
       if (hasConflict) {
         throw new BadRequestException("This time slot is already booked");
@@ -235,6 +235,7 @@ export class BookingsService {
     const endTime = new Date(dto.endTime);
 
     const hasConflict = await this.checkConflict(
+      dto.orgId,
       dto.staffId,
       startTime,
       endTime,
@@ -245,6 +246,7 @@ export class BookingsService {
   }
 
   private async checkConflict(
+    orgId: string,
     staffId: string,
     startTime: Date,
     endTime: Date,
@@ -252,7 +254,8 @@ export class BookingsService {
   ): Promise<boolean> {
     const queryBuilder = this.bookingRepository
       .createQueryBuilder("booking")
-      .where("booking.staffId = :staffId", { staffId })
+      .where("booking.orgId = :orgId", { orgId })
+      .andWhere("booking.staffId = :staffId", { staffId })
       .andWhere("booking.status NOT IN (:...excluded)", {
         excluded: [BookingStatus.Cancelled, BookingStatus.NoShow],
       })

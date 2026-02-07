@@ -4,7 +4,6 @@ import {
   Client,
   Booking,
   CalendarEvent,
-  StaffAvailability,
   AvailableSlot,
   StaffMember,
   CreateServiceDto,
@@ -13,7 +12,6 @@ import {
   UpdateClientDto,
   CreateBookingDto,
   UpdateBookingDto,
-  SetStaffAvailabilityDto,
   PaginatedResponse,
 } from "@/types/booking";
 
@@ -79,25 +77,6 @@ export const BookingApi = {
 
   deleteClient: async (id: string): Promise<void> => {
     await api.delete(`/clients/${id}`);
-  },
-
-  // Staff Availability
-  getStaffAvailability: async (): Promise<StaffAvailability[]> => {
-    const response = await api.get("/staff-availability");
-    return response.data;
-  },
-
-  getStaffAvailabilityByUser: async (userId: string): Promise<StaffAvailability[]> => {
-    const response = await api.get(`/staff-availability/staff/${userId}`);
-    return response.data;
-  },
-
-  setStaffAvailability: async (
-    userId: string,
-    schedules: SetStaffAvailabilityDto[],
-  ): Promise<StaffAvailability[]> => {
-    const response = await api.put(`/staff-availability/staff/${userId}`, schedules);
-    return response.data;
   },
 
   getAvailableSlots: async (

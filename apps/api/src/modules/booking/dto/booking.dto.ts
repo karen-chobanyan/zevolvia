@@ -21,6 +21,7 @@ export interface UpdateBookingDto {
 }
 
 export interface CheckAvailabilityDto {
+  orgId: string;
   staffId: string;
   startTime: string;
   endTime: string;

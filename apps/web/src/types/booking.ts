@@ -32,20 +32,6 @@ export type Client = {
   updatedAt: string;
 };
 
-export type StaffAvailability = {
-  id: string;
-  orgId: string;
-  userId: string;
-  userName: string | null;
-  userEmail: string;
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isAvailable: boolean;
-  createdAt: string;
-  updatedAt: string;
-};
-
 export type Booking = {
   id: string;
   orgId: string;
@@ -137,13 +123,6 @@ export type UpdateBookingDto = {
   startTime?: string;
   status?: BookingStatus;
   notes?: string;
-};
-
-export type SetStaffAvailabilityDto = {
-  dayOfWeek: number;
-  startTime: string;
-  endTime: string;
-  isAvailable?: boolean;
 };
 
 export type PaginatedResponse<T> = {

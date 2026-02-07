@@ -1,76 +1,19 @@
 import { Injectable, BadRequestException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository } from "typeorm";
-import { StaffAvailability } from "../entities/staff-availability.entity";
-import { SetStaffAvailabilityDto, AvailableSlotDto } from "../dto/staff-availability.dto";
+import { AvailableSlotDto, WorkingHoursDto } from "../dto/staff-availability.dto";
 import { Booking } from "../entities/booking.entity";
 import { BookingStatus } from "../../../common/enums";
 
 @Injectable()
 export class StaffAvailabilityService {
   constructor(
-    @InjectRepository(StaffAvailability)
-    private readonly availabilityRepository: Repository<StaffAvailability>,
     @InjectRepository(Booking)
     private readonly bookingRepository: Repository<Booking>,
   ) {}
 
-  async findAll(orgId: string): Promise<StaffAvailability[]> {
-    return this.availabilityRepository
-      .createQueryBuilder("availability")
-      .leftJoinAndSelect("availability.user", "user")
-      .where("availability.orgId = :orgId", { orgId })
-      .orderBy("availability.userId", "ASC")
-      .addOrderBy("availability.dayOfWeek", "ASC")
-      .getMany();
-  }
-
-  async findByStaff(orgId: string, userId: string): Promise<StaffAvailability[]> {
-    return this.availabilityRepository
-      .createQueryBuilder("availability")
-      .leftJoinAndSelect("availability.user", "user")
-      .where("availability.orgId = :orgId", { orgId })
-      .andWhere("availability.userId = :userId", { userId })
-      .orderBy("availability.dayOfWeek", "ASC")
-      .getMany();
-  }
-
-  async setSchedule(
-    orgId: string,
-    userId: string,
-    schedules: SetStaffAvailabilityDto[],
-  ): Promise<StaffAvailability[]> {
-    // Validate schedules
-    for (const schedule of schedules) {
-      if (schedule.startTime >= schedule.endTime) {
-        throw new BadRequestException(
-          `Invalid time range for day ${schedule.dayOfWeek}: start time must be before end time`,
-        );
-      }
-    }
-
-    // Delete existing availability for this user
-    await this.availabilityRepository
-      .createQueryBuilder()
-      .delete()
-      .where("orgId = :orgId", { orgId })
-      .andWhere("userId = :userId", { userId })
-      .execute();
-
-    // Create new availability records
-    const availabilities = schedules.map((schedule) =>
-      this.availabilityRepository.create({
-        orgId,
-        userId,
-        dayOfWeek: schedule.dayOfWeek,
-        startTime: schedule.startTime,
-        endTime: schedule.endTime,
-        isAvailable: schedule.isAvailable ?? true,
-      }),
-    );
-
-    return this.availabilityRepository.save(availabilities);
-  }
+  private static readonly WORK_START = "09:00";
+  private static readonly WORK_END = "20:00";
 
   async getAvailableSlots(
     orgId: string,
@@ -80,83 +23,127 @@ export class StaffAvailabilityService {
     slotIntervalMinutes = 15,
   ): Promise<AvailableSlotDto[]> {
     const targetDate = new Date(date);
-    const dayOfWeek = targetDate.getDay();
+    if (!date || Number.isNaN(targetDate.getTime())) {
+      throw new BadRequestException("Invalid date format. Use YYYY-MM-DD.");
+    }
 
-    console.log(
-      "########################################################################################",
-    );
-    console.log(
-      `Getting available slots for staff ${staffId} on ${date} (day of week: ${dayOfWeek}) with duration ${durationMinutes} minutes`,
-    );
+    if (!Number.isFinite(durationMinutes) || durationMinutes <= 0) {
+      throw new BadRequestException("durationMinutes must be a positive number.");
+    }
 
-    // Get staff availability for this day
-    const availability = await this.availabilityRepository.findOne({
-      where: {
-        orgId,
-        userId: staffId,
-        dayOfWeek,
-        isAvailable: true,
-      },
-    });
+    if (!Number.isFinite(slotIntervalMinutes) || slotIntervalMinutes <= 0) {
+      throw new BadRequestException("slotIntervalMinutes must be a positive number.");
+    }
 
-    if (!availability) {
+    const { workStart, workEnd } = this.buildWorkingWindow(targetDate);
+    const durationMs = durationMinutes * 60 * 1000;
+    const intervalMs = slotIntervalMinutes * 60 * 1000;
+
+    const workWindowMs = workEnd.getTime() - workStart.getTime();
+    if (workEnd.getTime() <= workStart.getTime() || durationMs > workWindowMs) {
       return [];
     }
 
-    // Parse working hours
-    const [startHour, startMin] = availability.startTime.split(":").map(Number);
-    const [endHour, endMin] = availability.endTime.split(":").map(Number);
-
-    const workStart = new Date(targetDate);
-    workStart.setHours(startHour, startMin, 0, 0);
-
-    const workEnd = new Date(targetDate);
-    workEnd.setHours(endHour, endMin, 0, 0);
-
-    // Get existing bookings for this staff on this day
-    const dayStart = new Date(targetDate);
-    dayStart.setHours(0, 0, 0, 0);
-
-    const dayEnd = new Date(targetDate);
-    dayEnd.setHours(23, 59, 59, 999);
-
     const existingBookings = await this.bookingRepository
       .createQueryBuilder("booking")
-      .where("booking.staffId = :staffId", { staffId })
-      .andWhere("booking.startTime >= :dayStart", { dayStart })
-      .andWhere("booking.endTime <= :dayEnd", { dayEnd })
+      .where("booking.orgId = :orgId", { orgId })
+      .andWhere("booking.staffId = :staffId", { staffId })
       .andWhere("booking.status NOT IN (:...excluded)", {
         excluded: [BookingStatus.Cancelled, BookingStatus.NoShow],
       })
+      .andWhere("booking.startTime < :workEnd", { workEnd })
+      .andWhere("booking.endTime > :workStart", { workStart })
       .orderBy("booking.startTime", "ASC")
       .getMany();
 
-    // Generate available slots
+    const blockedIntervals = this.mergeIntervals(
+      existingBookings.map((booking) => ({
+        start: new Date(booking.startTime),
+        end: new Date(booking.endTime),
+      })),
+    );
+
     const slots: AvailableSlotDto[] = [];
     let currentTime = new Date(workStart);
+    let blockedIndex = 0;
 
-    while (currentTime < workEnd) {
-      const slotEnd = new Date(currentTime.getTime() + durationMinutes * 60 * 1000);
+    while (currentTime.getTime() + durationMs <= workEnd.getTime()) {
+      const slotEnd = new Date(currentTime.getTime() + durationMs);
 
-      if (slotEnd > workEnd) {
-        break;
+      while (
+        blockedIndex < blockedIntervals.length &&
+        blockedIntervals[blockedIndex].end.getTime() <= currentTime.getTime()
+      ) {
+        blockedIndex += 1;
       }
 
-      // Check if slot overlaps with any existing booking
-      const hasConflict = existingBookings.some((booking) => {
-        const bookingStart = new Date(booking.startTime);
-        const bookingEnd = new Date(booking.endTime);
-        return currentTime < bookingEnd && slotEnd > bookingStart;
-      });
+      const blocked = blockedIntervals[blockedIndex];
+      const hasConflict =
+        blocked &&
+        currentTime.getTime() < blocked.end.getTime() &&
+        slotEnd.getTime() > blocked.start.getTime();
 
       if (!hasConflict) {
         slots.push(new AvailableSlotDto(currentTime.toISOString(), slotEnd.toISOString()));
       }
 
-      // Move to next slot
-      currentTime = new Date(currentTime.getTime() + slotIntervalMinutes * 60 * 1000);
+      currentTime = new Date(currentTime.getTime() + intervalMs);
     }
 
     return slots;
+  }
+
+  getWorkingHours(_orgId: string, staffId?: string): WorkingHoursDto[] {
+    // TODO: replace fixed hours with org/staff-specific working schedules.
+    return this.buildDefaultWorkingHours(staffId);
+  }
+
+  private buildDefaultWorkingHours(staffId?: string): WorkingHoursDto[] {
+    return Array.from({ length: 7 }, (_, dayOfWeek) => ({
+      staffId,
+      dayOfWeek,
+      startTime: StaffAvailabilityService.WORK_START,
+      endTime: StaffAvailabilityService.WORK_END,
+      isAvailable: true,
+    }));
+  }
+
+  private buildWorkingWindow(targetDate: Date): { workStart: Date; workEnd: Date } {
+    const workStart = new Date(targetDate);
+    const [startHour, startMinute] = StaffAvailabilityService.WORK_START.split(":").map(Number);
+    workStart.setHours(startHour, startMinute, 0, 0);
+
+    const workEnd = new Date(targetDate);
+    const [endHour, endMinute] = StaffAvailabilityService.WORK_END.split(":").map(Number);
+    workEnd.setHours(endHour, endMinute, 0, 0);
+
+    return { workStart, workEnd };
+  }
+
+  private mergeIntervals(
+    intervals: Array<{ start: Date; end: Date }>,
+  ): Array<{ start: Date; end: Date }> {
+    if (intervals.length <= 1) {
+      return intervals;
+    }
+
+    const sorted = [...intervals].sort((a, b) => a.start.getTime() - b.start.getTime());
+
+    const merged: Array<{ start: Date; end: Date }> = [sorted[0]];
+
+    for (let i = 1; i < sorted.length; i += 1) {
+      const current = sorted[i];
+      const last = merged[merged.length - 1];
+
+      if (current.start.getTime() <= last.end.getTime()) {
+        if (current.end.getTime() > last.end.getTime()) {
+          last.end = current.end;
+        }
+      } else {
+        merged.push(current);
+      }
+    }
+
+    return merged;
   }
 }

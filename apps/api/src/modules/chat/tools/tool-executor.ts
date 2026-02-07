@@ -1,6 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
-import { isValid, parseISO } from "date-fns";
+import { addDays, format, getDay, isValid, parseISO } from "date-fns";
 import { ServicesService } from "../../booking/services/services.service";
 import { StaffServicesService } from "../../booking/services/staff-services.service";
 import { StaffAvailabilityService } from "../../booking/services/staff-availability.service";
@@ -128,6 +128,10 @@ export class ChatToolExecutor {
     context: ToolExecutionContext,
   ) {
     const resolvedDate = this.resolveRelativeDate(date, context);
+
+    console.log("#############################################################################");
+    console.log("Resolved date:", resolvedDate);
+
     const slots = await this.staffAvailabilityService.getAvailableSlots(
       orgId,
       staffId,
@@ -176,13 +180,13 @@ export class ChatToolExecutor {
       const qualifier = weekdayMatch[1];
       const weekday = weekdayMatch[2];
       const targetDay = this.weekdayToIndex(weekday);
-      const baseDate = this.buildUtcDateFromIso(baseIso);
+      const baseDate = this.parseIsoDate(baseIso);
 
       if (targetDay === null || !baseDate) {
         return input;
       }
 
-      const currentDay = baseDate.getUTCDay();
+      const currentDay = getDay(baseDate);
       let delta = (targetDay - currentDay + 7) % 7;
 
       if (qualifier === "next") {
@@ -204,20 +208,11 @@ export class ChatToolExecutor {
   }
 
   private addDaysToIsoDate(isoDate: string, deltaDays: number): string {
-    const [year, month, day] = isoDate.split("-").map((value) => Number(value));
-    if (!year || !month || !day) {
+    const parsed = this.parseIsoDate(isoDate);
+    if (!parsed) {
       return isoDate;
     }
-    const utcDate = new Date(Date.UTC(year, month - 1, day + deltaDays));
-    return utcDate.toISOString().slice(0, 10);
-  }
-
-  private buildUtcDateFromIso(isoDate: string): Date | null {
-    if (!this.isIsoDate(isoDate)) {
-      return null;
-    }
-    const [year, month, day] = isoDate.split("-").map((value) => Number(value));
-    return new Date(Date.UTC(year, month - 1, day));
+    return format(addDays(parsed, deltaDays), "yyyy-MM-dd");
   }
 
   private buildDateIsoInTimeZone(timeZone: string): string {
@@ -244,6 +239,13 @@ export class ChatToolExecutor {
     return isValid(parsed);
   }
 
+  private parseIsoDate(value: string): Date | null {
+    if (!this.isIsoDate(value)) {
+      return null;
+    }
+    return parseISO(value);
+  }
+
   private weekdayToIndex(weekday: string): number | null {
     switch (weekday) {
       case "sunday":
@@ -266,13 +268,11 @@ export class ChatToolExecutor {
   }
 
   private async handleGetWorkingHours(orgId: string, staffId?: string) {
-    const records = staffId
-      ? await this.staffAvailabilityService.findByStaff(orgId, staffId)
-      : await this.staffAvailabilityService.findAll(orgId);
+    const records = this.staffAvailabilityService.getWorkingHours(orgId, staffId);
 
     return records.map((r) => ({
-      staffId: r.userId,
-      staffName: r.user?.name ?? r.user?.email ?? "Staff",
+      staffId: r.staffId ?? staffId ?? null,
+      staffName: "Staff",
       dayOfWeek: r.dayOfWeek,
       dayName: DAY_NAMES[r.dayOfWeek] ?? String(r.dayOfWeek),
       startTime: r.startTime,

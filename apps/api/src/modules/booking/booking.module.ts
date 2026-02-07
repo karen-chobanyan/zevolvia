@@ -2,7 +2,6 @@ import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { Service } from "./entities/service.entity";
 import { Client } from "./entities/client.entity";
-import { StaffAvailability } from "./entities/staff-availability.entity";
 import { Booking } from "./entities/booking.entity";
 import { StaffService } from "./entities/staff-service.entity";
 import { ServicesService } from "./services/services.service";
@@ -22,7 +21,7 @@ import { IdentityModule } from "../identity/identity.module";
   imports: [
     AuthModule,
     IdentityModule,
-    TypeOrmModule.forFeature([Service, Client, StaffAvailability, Booking, StaffService]),
+    TypeOrmModule.forFeature([Service, Client, Booking, StaffService]),
   ],
   controllers: [
     ServicesController,

@@ -47,7 +47,7 @@ Maps to: StaffAvailabilityService.getAvailableSlots(orgId, ...)
 ────────────────────────────────────────
 Tool: get_working_hours
 Parameters: staff_id?
-Maps to: StaffAvailabilityService.findAll/findByStaff(orgId, ...)
+Maps to: StaffAvailabilityService.getWorkingHours(orgId, ...) (fixed 09:00–20:00; TODO dynamic)
 ────────────────────────────────────────
 Tool: create_booking
 Parameters: staff_id, service_id, start_time, client_name, notes?
