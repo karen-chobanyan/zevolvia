@@ -8,6 +8,8 @@ import { ConfigService } from "@nestjs/config";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import OpenAI from "openai";
+import fs from "fs";
+import path from "path";
 import { DataSource, Repository } from "typeorm";
 import { ChatRole, DocumentStatus } from "../../common/enums";
 import { EmbeddingService } from "../ingestion/services/embedding.service";
@@ -15,8 +17,6 @@ import { ChatMessage } from "./entities/chat-message.entity";
 import { ChatSession } from "./entities/chat-session.entity";
 import { AskDto } from "./dto/ask.dto";
 
-const DEFAULT_SYSTEM_PROMPT =
-  "You are a helpful assistant. Use ONLY the provided context. If the answer is not in the context, say you don't know.";
 const DEFAULT_TOP_K = 5;
 const MAX_TOP_K = 20;
 const MAX_QUESTION_LENGTH = 4000;
@@ -48,6 +48,7 @@ export class ChatService {
   private readonly chatModel: string;
   private readonly chatTemperature: number;
   private readonly chatMaxTokens?: number;
+  private readonly systemPrompt: string;
 
   constructor(
     @InjectPinoLogger(ChatService.name)
@@ -74,6 +75,7 @@ export class ChatService {
     const maxTokens = this.configService.get<string>("CHAT_MAX_TOKENS");
     const parsedMaxTokens = maxTokens ? Number(maxTokens) : NaN;
     this.chatMaxTokens = Number.isFinite(parsedMaxTokens) ? parsedMaxTokens : undefined;
+    this.systemPrompt = this.loadSystemPrompt();
   }
 
   async createSession(userId: string, orgId: string, title?: string) {
@@ -181,7 +183,7 @@ export class ChatService {
         messages: [
           {
             role: "system",
-            content: dto?.system?.trim() || DEFAULT_SYSTEM_PROMPT,
+            content: dto?.system?.trim() || this.systemPrompt,
           },
           {
             role: "user",
@@ -233,6 +235,26 @@ export class ChatService {
       throw new NotFoundException("Chat session not found.");
     }
     return session;
+  }
+
+  private loadSystemPrompt(): string {
+    const promptPath = path.resolve(__dirname, "system-prompt.md");
+
+    try {
+      const content = fs.readFileSync(promptPath, "utf8").trim();
+      if (!content) {
+        this.logger.error({ path: promptPath }, "System prompt file is empty");
+        throw new Error("System prompt file is empty.");
+      }
+
+      return content;
+    } catch (error) {
+      this.logger.error(
+        { err: (error as Error).message, path: promptPath },
+        "System prompt file is missing or unreadable",
+      );
+      throw new Error("System prompt file is missing or unreadable.");
+    }
   }
 
   private async retrieveCitations(
