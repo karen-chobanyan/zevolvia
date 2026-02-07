@@ -1,6 +1,5 @@
 import { Injectable } from "@nestjs/common";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
-import { addDays, format, getDay, isValid, parseISO } from "date-fns";
 import { ServicesService } from "../../booking/services/services.service";
 import { StaffServicesService } from "../../booking/services/staff-services.service";
 import { StaffAvailabilityService } from "../../booking/services/staff-availability.service";
@@ -8,6 +7,21 @@ import { BookingsService } from "../../booking/services/bookings.service";
 import type { ToolResult, ToolExecutionContext } from "./tool-result.type";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const WEEKDAY_INDEX: Record<string, number> = {
+  sunday: 0,
+  monday: 1,
+  tuesday: 2,
+  wednesday: 3,
+  thursday: 4,
+  friday: 5,
+  saturday: 6,
+};
+
+const WEEKDAY_RE =
+  /^(?:next\s+|this\s+)?(sunday|monday|tuesday|wednesday|thursday|friday|saturday)$/;
 
 @Injectable()
 export class ChatToolExecutor {
@@ -127,10 +141,12 @@ export class ChatToolExecutor {
     durationMinutes: number,
     context: ToolExecutionContext,
   ) {
-    const resolvedDate = this.resolveRelativeDate(date, context);
-
-    console.log("#############################################################");
-    console.log("Resolved date:", resolvedDate);
+    const resolvedDate = this.resolveDate(date, context);
+    if (!resolvedDate) {
+      return {
+        error: `Could not resolve date: "${date}". Use YYYY-MM-DD or a relative phrase like "today", "tomorrow", "next monday".`,
+      };
+    }
 
     const slots = await this.staffAvailabilityService.getAvailableSlots(
       orgId,
@@ -138,9 +154,9 @@ export class ChatToolExecutor {
       resolvedDate,
       durationMinutes,
     );
-    const dayName = this.isIsoDate(resolvedDate)
-      ? (DAY_NAMES[parseISO(resolvedDate).getDay()] ?? null)
-      : null;
+
+    const parsed = new Date(`${resolvedDate}T00:00:00`);
+    const dayName = Number.isFinite(parsed.getTime()) ? (DAY_NAMES[parsed.getDay()] ?? null) : null;
 
     return {
       date: resolvedDate,
@@ -153,85 +169,60 @@ export class ChatToolExecutor {
     };
   }
 
-  private resolveRelativeDate(input: string, context: ToolExecutionContext): string {
+  private resolveDate(input: string, context: ToolExecutionContext): string | null {
     if (!input || typeof input !== "string") {
-      return input;
+      return null;
     }
 
-    const normalized = input.trim().toLowerCase();
-    const baseIso =
-      context.today ||
-      (context.timeZone
-        ? this.buildDateIsoInTimeZone(context.timeZone)
-        : this.buildDateIsoInTimeZone("UTC"));
+    const trimmed = input.trim();
 
-    if (this.isIsoDate(normalized)) {
-      return normalized;
+    // Already YYYY-MM-DD — validate and pass through
+    if (ISO_DATE_RE.test(trimmed)) {
+      const parsed = new Date(`${trimmed}T00:00:00`);
+      return Number.isFinite(parsed.getTime()) ? trimmed : null;
     }
+
+    const tz = context.timeZone ?? "UTC";
+    const today = this.getTodayDate(tz);
+    const normalized = trimmed.toLowerCase();
 
     if (normalized === "today") {
-      return baseIso;
+      return this.formatDate(today);
     }
 
     if (normalized === "tomorrow") {
-      return this.addDaysToIsoDate(baseIso, 1);
+      return this.formatDate(this.addDays(today, 1));
     }
 
-    if (normalized === "yesterday") {
-      return this.addDaysToIsoDate(baseIso, -1);
-    }
-
-    const weekdayMatch = normalized.match(
-      /^(next|this)?\s*(monday|tuesday|wednesday|thursday|friday|saturday|sunday)$/,
-    );
-
+    // "monday", "next tuesday", "this friday", etc.
+    const weekdayMatch = normalized.match(WEEKDAY_RE);
     if (weekdayMatch) {
-      const qualifier = weekdayMatch[1];
-      const weekday = weekdayMatch[2];
-      const targetDay = this.weekdayToIndex(weekday);
-      const baseDate = this.parseIsoDate(baseIso);
-
-      if (targetDay === null || !baseDate) {
-        return input;
-      }
-
-      const currentDay = getDay(baseDate);
+      const targetDay = WEEKDAY_INDEX[weekdayMatch[1]];
+      const currentDay = today.getDay();
       let delta = (targetDay - currentDay + 7) % 7;
-
-      if (qualifier === "next") {
-        delta = delta === 0 ? 7 : delta;
+      // "tuesday" on a Tuesday → next week, not today
+      if (delta === 0) {
+        delta = 7;
       }
-
-      return this.addDaysToIsoDate(baseIso, delta);
+      return this.formatDate(this.addDays(today, delta));
     }
 
-    const inDaysMatch = normalized.match(/^in\s+(\d{1,3})\s+days?$/);
-    if (inDaysMatch) {
-      const delta = Number(inDaysMatch[1]);
-      if (Number.isFinite(delta) && delta >= 0) {
-        return this.addDaysToIsoDate(baseIso, delta);
-      }
-    }
-
-    return input;
+    this.logger.warn({ input }, "Unresolvable date received from LLM");
+    return null;
   }
 
-  private addDaysToIsoDate(isoDate: string, deltaDays: number): string {
-    const parsed = this.parseIsoDate(isoDate);
-    if (!parsed) {
-      return isoDate;
-    }
-    return format(addDays(parsed, deltaDays), "yyyy-MM-dd");
+  private getTodayDate(timeZone: string): Date {
+    const iso = this.formatDateInTz(timeZone);
+    return new Date(`${iso}T00:00:00`);
   }
 
-  private buildDateIsoInTimeZone(timeZone: string): string {
-    const now = new Date();
-    const parts = new Intl.DateTimeFormat("en-US", {
+  private formatDateInTz(timeZone: string): string {
+    const parts = new Intl.DateTimeFormat("en-CA", {
       timeZone,
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
-    }).formatToParts(now);
+    }).formatToParts(new Date());
 
     const year = parts.find((p) => p.type === "year")?.value ?? "1970";
     const month = parts.find((p) => p.type === "month")?.value ?? "01";
@@ -240,40 +231,15 @@ export class ChatToolExecutor {
     return `${year}-${month}-${day}`;
   }
 
-  private isIsoDate(value: string): boolean {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-      return false;
-    }
-    const parsed = parseISO(value);
-    return isValid(parsed);
+  private addDays(date: Date, days: number): Date {
+    return new Date(date.getTime() + days * 86_400_000);
   }
 
-  private parseIsoDate(value: string): Date | null {
-    if (!this.isIsoDate(value)) {
-      return null;
-    }
-    return parseISO(value);
-  }
-
-  private weekdayToIndex(weekday: string): number | null {
-    switch (weekday) {
-      case "sunday":
-        return 0;
-      case "monday":
-        return 1;
-      case "tuesday":
-        return 2;
-      case "wednesday":
-        return 3;
-      case "thursday":
-        return 4;
-      case "friday":
-        return 5;
-      case "saturday":
-        return 6;
-      default:
-        return null;
-    }
+  private formatDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, "0");
+    const d = String(date.getDate()).padStart(2, "0");
+    return `${y}-${m}-${d}`;
   }
 
   private async handleGetWorkingHours(orgId: string, staffId?: string) {

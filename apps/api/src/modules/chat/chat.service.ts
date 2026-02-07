@@ -214,8 +214,7 @@ export class ChatService {
 
     const timeZone = await this.resolveUserTimeZone(userId, orgId);
     const dateContext = this.buildDateContext(timeZone);
-    const dateBlock = `## Current date\nToday is ${dateContext.dateIso} (${dateContext.dayName}) in ${dateContext.timeZone}. 
-    Use this to interpret relative dates like "today" and "tomorrow".`;
+    const dateBlock = `## Current date\nToday is ${dateContext.dateIso} (${dateContext.dayName}).`;
 
     const baseSystemContent = `${dto?.system?.trim() || this.systemPrompt}\n\n${dateBlock}`;
     const systemContent = ragContext
@@ -235,7 +234,6 @@ export class ChatService {
       this.logger.info({ sessionId, orgId, toolCount: BOOKING_TOOLS.length }, "Starting tool loop");
       const result = await this.executeToolLoop(messages, orgId, {
         timeZone,
-        today: dateContext.dateIso,
       });
       answer = result.answer;
       usage = result.usage;
@@ -287,7 +285,7 @@ export class ChatService {
   private async executeToolLoop(
     initialMessages: ReadonlyArray<OpenAI.ChatCompletionMessageParam>,
     orgId: string,
-    toolContext: { timeZone?: string; today?: string },
+    toolContext: { timeZone?: string },
   ): Promise<{ answer: string; usage?: OpenAI.CompletionUsage }> {
     let messages = [...initialMessages];
     let lastUsage: OpenAI.CompletionUsage | undefined;
@@ -383,7 +381,6 @@ export class ChatService {
           return this.toolExecutor.execute(tc.id, tc.function.name, args, {
             orgId,
             timeZone: toolContext.timeZone,
-            today: toolContext.today,
           });
         }),
       );

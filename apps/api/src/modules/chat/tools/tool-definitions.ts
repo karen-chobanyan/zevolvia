@@ -49,7 +49,7 @@ export const BOOKING_TOOLS: ChatCompletionTool[] = [
           date: {
             type: "string",
             description:
-              "The date to check availability for. Use YYYY-MM-DD, or a relative phrase like 'today', 'tomorrow', or 'this Monday'. If the user used a relative date, pass it through unchanged.",
+              "The date to check availability for. Use YYYY-MM-DD format, or pass relative phrases like 'today', 'tomorrow', 'monday', 'next tuesday' — the server will resolve them correctly.",
           },
           duration_minutes: {
             type: "number",
