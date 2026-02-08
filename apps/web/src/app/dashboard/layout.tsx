@@ -1,16 +1,49 @@
 "use client";
 
 import TrialBanner from "@/components/billing/TrialBanner";
+import Loading from "@/components/loading/Loading";
 import { useSidebar } from "@/context/SidebarContext";
+import { getMe } from "@/lib/auth";
 import AppHeader from "@/layout/AppHeader";
 import AppSidebar from "@/layout/AppSidebar";
 import Backdrop from "@/layout/Backdrop";
-import { usePathname } from "next/navigation";
-import React from "react";
+import { usePathname, useRouter } from "next/navigation";
+import React, { useEffect, useState } from "react";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const { isExpanded, isHovered, isMobileOpen } = useSidebar();
   const pathname = usePathname();
+  const router = useRouter();
+  const [authResolved, setAuthResolved] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifyAuth = async () => {
+      try {
+        await getMe();
+        if (isMounted) {
+          setAuthResolved(true);
+        }
+      } catch (error) {
+        const status = (error as { status?: number })?.status;
+        if (status === 401) {
+          const next = encodeURIComponent(window.location.pathname + window.location.search);
+          router.replace(`/login?next=${next}`);
+          return;
+        }
+        if (isMounted) {
+          setAuthResolved(true);
+        }
+      }
+    };
+
+    verifyAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [router]);
 
   // Route-specific styles for the main content container
   const getRouteSpecificStyles = () => {
@@ -34,6 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     : isExpanded || isHovered
       ? "xl:ml-[290px]"
       : "xl:ml-[90px]";
+
+  if (!authResolved) {
+    return (
+      <div className="min-h-screen bg-white">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen xl:flex">

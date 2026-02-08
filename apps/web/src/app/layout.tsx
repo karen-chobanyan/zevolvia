@@ -16,8 +16,8 @@ const mantineTheme = createTheme({
 
 export const metadata: Metadata = {
   title: {
-    template: "%s | SalonIQ",
-    default: "SalonIQ - SMS Booking AI for Salons",
+    template: "%s | Evolvia",
+    default: "Evolvia - SMS Booking AI for Salons",
   },
   description:
     "The SMS booking assistant that plugs into Vagaro, Fresha, or Boulevard so clients can book like they are texting a friend.",

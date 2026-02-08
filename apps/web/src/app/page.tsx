@@ -32,8 +32,15 @@ export default function HomePage() {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 bg-white/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-2xl font-serif font-bold tracking-tight text-gray-900">
-            Salon<span className="text-brand-500">IQ</span>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/images/logo/logo.svg"
+              alt="Evolvia Logo"
+              width={172}
+              height={40}
+              className="h-9 w-auto"
+              priority
+            />
           </Link>
           <div className="hidden items-center gap-8 md:flex">
             {navItems.map((item) => (
@@ -215,7 +222,7 @@ export default function HomePage() {
               From setup to booked in days, not weeks
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              Plug in, go live, and let SalonIQ handle the conversations while you focus on clients.
+              Plug in, go live, and let Evolvia handle the conversations while you focus on clients.
             </p>
           </div>
 
@@ -263,7 +270,7 @@ export default function HomePage() {
               Keep your booking system. Make it smarter.
             </h2>
             <p className="mt-4 text-lg text-gray-700">
-              SalonIQ connects to your existing calendar so you never have to migrate data or
+              Evolvia connects to your existing calendar so you never have to migrate data or
               retrain staff. Clients just text your salon number and bookings appear where they
               always have.
             </p>
@@ -309,7 +316,7 @@ export default function HomePage() {
             <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
               <p className="text-sm font-semibold text-gray-900">No replacement anxiety</p>
               <p className="mt-2 text-sm text-gray-600">
-                SalonIQ is an add-on, not a rip-and-replace system. Start today without changing
+                Evolvia is an add-on, not a rip-and-replace system. Start today without changing
                 anything else.
               </p>
               <Link
@@ -366,7 +373,7 @@ export default function HomePage() {
               Built to complement, not replace
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              A quick look at how SalonIQ stacks up against enterprise platforms, voice AI, and
+              A quick look at how Evolvia stacks up against enterprise platforms, voice AI, and
               booking forms.
             </p>
           </div>
@@ -376,7 +383,7 @@ export default function HomePage() {
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-5 py-4">Feature</th>
-                  <th className="bg-brand-50 px-5 py-4 text-brand-700">SalonIQ</th>
+                  <th className="bg-brand-50 px-5 py-4 text-brand-700">Evolvia</th>
                   <th className="px-5 py-4">Zenoti/Booker</th>
                   <th className="px-5 py-4">Voice AI</th>
                   <th className="px-5 py-4">Online Forms</th>
@@ -387,7 +394,7 @@ export default function HomePage() {
                   <tr key={row.feature} className="border-t border-gray-200">
                     <td className="px-5 py-4 font-medium text-gray-900">{row.feature}</td>
                     <td className="bg-brand-50 px-5 py-4 font-semibold text-brand-800">
-                      {row.saloniq}
+                      {row.evolvia}
                     </td>
                     <td className="px-5 py-4 text-gray-600">{row.enterprise}</td>
                     <td className="px-5 py-4 text-gray-600">{row.voiceAi}</td>
@@ -510,7 +517,7 @@ export default function HomePage() {
               Your questions, answered
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              Everything you need to know about SalonIQ before you launch.
+              Everything you need to know about Evolvia before you launch.
             </p>
           </div>
 
@@ -558,11 +565,17 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="border-t border-gray-800 bg-gray-900 py-12">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <div className="text-xl font-serif font-bold text-white">
-            Salon<span className="text-brand-500">IQ</span>
-          </div>
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/images/logo/logo.svg"
+              alt="Evolvia Logo"
+              width={172}
+              height={40}
+              className="h-9 w-auto"
+            />
+          </Link>
           <p className="text-sm text-gray-500">
-            (c) {new Date().getFullYear()} SalonIQ. All rights reserved.
+            (c) {new Date().getFullYear()} Evolvia. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <Link href="/login" className="hover:text-white">

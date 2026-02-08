@@ -18,7 +18,7 @@ export class EmailService {
   private readonly appUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.fromAddress = this.configService.get<string>("SMTP_FROM") || "noreply@saloniq.com";
+    this.fromAddress = this.configService.get<string>("SMTP_FROM") || "noreply@evolvia.com";
     this.appUrl = this.configService.get<string>("APP_URL") || "http://localhost:3000";
 
     const smtpHost = this.configService.get<string>("SMTP_HOST");
@@ -125,6 +125,54 @@ This invitation will expire in 7 days. If you didn't expect this invitation, you
     return this.sendEmail({
       to: email,
       subject: `You've been invited to join ${orgName}`,
+      html,
+      text,
+    });
+  }
+
+  async sendPasswordResetEmail(params: { email: string; resetToken: string }): Promise<boolean> {
+    const { email, resetToken } = params;
+    const resetUrl = `${this.appUrl}/auth/reset-password?token=${encodeURIComponent(resetToken)}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 30px; border-radius: 10px 10px 0 0;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">Reset your Evolvia password</h1>
+          </div>
+          <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none;">
+            <p style="font-size: 16px; margin-top: 0;">We received a request to reset your password.</p>
+            <p style="font-size: 16px;">Use the button below to set a new password:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: white; padding: 14px 32px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">Reset Password</a>
+            </div>
+            <p style="font-size: 14px; color: #6b7280;">If you didn't request this, you can ignore this email. The reset link will expire shortly.</p>
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;">
+            <p style="font-size: 12px; color: #9ca3af; margin-bottom: 0;">If the button doesn't work, copy and paste this link into your browser:<br><a href="${resetUrl}" style="color: #3b82f6;">${resetUrl}</a></p>
+          </div>
+        </body>
+      </html>
+    `;
+
+    const text = `
+Reset your Evolvia password
+
+We received a request to reset your password.
+
+Reset your password using this link:
+${resetUrl}
+
+If you didn't request this, you can ignore this email.
+    `.trim();
+
+    return this.sendEmail({
+      to: email,
+      subject: "Reset your Evolvia password",
       html,
       text,
     });

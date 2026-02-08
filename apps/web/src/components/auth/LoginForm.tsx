@@ -28,16 +28,20 @@ export default function LoginForm() {
     event.preventDefault();
     setError(null);
     setLoading(true);
+    let didRedirect = false;
 
     try {
       await login({ email, password });
       const next = searchParams.get("next");
       const safeNext = next && next.startsWith("/") ? next : "/dashboard";
-      router.push(safeNext);
+      didRedirect = true;
+      router.replace(safeNext);
     } catch (err: any) {
       setError(err?.message || "Login failed");
     } finally {
-      setLoading(false);
+      if (!didRedirect) {
+        setLoading(false);
+      }
     }
   }
 
@@ -60,7 +64,7 @@ export default function LoginForm() {
           <Input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@saloniq.com"
+            placeholder="you@evolvia.com"
             className="!bg-white !text-gray-900 !border-gray-200 focus:!border-brand-500"
           />
         </div>

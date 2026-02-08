@@ -31,7 +31,7 @@ test.describe("Authentication flows", () => {
     await loginPage.expectLoaded();
 
     await loginPage.expectSubmitDisabled();
-    await loginPage.fillCredentials("bad.user@saloniq.test", "wrong-password");
+    await loginPage.fillCredentials("bad.user@evolvia.test", "wrong-password");
     await loginPage.submit();
     await loginPage.expectInvalidCredentialsError();
   });
@@ -43,7 +43,7 @@ test.describe("Authentication flows", () => {
     const dashboardPage = new DashboardPage(page);
 
     await loginPage.goto("/dashboard");
-    await loginPage.fillCredentials("owner.e2e@saloniq.test", "Password123!");
+    await loginPage.fillCredentials("owner.e2e@evolvia.test", "Password123!");
     await loginPage.submit();
 
     await waitForPathname(page, "/dashboard");

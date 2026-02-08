@@ -34,6 +34,20 @@ type AcceptInviteBody = {
   password: string;
 };
 
+type ForgotPasswordBody = {
+  email: string;
+};
+
+type ChangePasswordBody = {
+  currentPassword: string;
+  newPassword: string;
+};
+
+type ResetPasswordBody = {
+  token: string;
+  newPassword: string;
+};
+
 @Controller("auth")
 export class AuthController {
   constructor(
@@ -96,6 +110,42 @@ export class AuthController {
   @Get("me")
   me(@Request() req: { user: JwtPayload }) {
     return req.user;
+  }
+
+  @Post("forgot-password")
+  async forgotPassword(@Body() body: ForgotPasswordBody) {
+    if (!body.email) {
+      throw new BadRequestException("Email is required");
+    }
+
+    await this.authService.forgotPassword(body.email);
+    return { ok: true };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post("change-password")
+  async changePassword(@Request() req: { user: JwtPayload }, @Body() body: ChangePasswordBody) {
+    if (!body.currentPassword || !body.newPassword) {
+      throw new BadRequestException("Current password and new password are required");
+    }
+
+    await this.authService.changePassword(
+      req.user.sub,
+      req.user.orgId,
+      body.currentPassword,
+      body.newPassword,
+    );
+    return { ok: true };
+  }
+
+  @Post("reset-password")
+  async resetPassword(@Body() body: ResetPasswordBody) {
+    if (!body.token || !body.newPassword) {
+      throw new BadRequestException("Token and new password are required");
+    }
+
+    await this.authService.resetPassword(body.token, body.newPassword);
+    return { ok: true };
   }
 
   @Get("invite")

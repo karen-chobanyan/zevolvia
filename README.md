@@ -1,4 +1,4 @@
-# SalonIQ
+# Evolvia
 
 An AI-powered SaaS platform for beauty salons, featuring intelligent client follow-ups, document management with RAG (Retrieval-Augmented Generation), and multi-tenant organization management.
 
@@ -22,7 +22,7 @@ An AI-powered SaaS platform for beauty salons, featuring intelligent client foll
 
 ## Overview
 
-SalonIQ is a full-stack monorepo application that helps beauty salons manage their operations with AI assistance. Key features include:
+Evolvia is a full-stack monorepo application that helps beauty salons manage their operations with AI assistance. Key features include:
 
 - **AI-Powered Follow-ups**: Automated client communication suggestions
 - **Document Management**: Upload, organize, and search through documents
@@ -353,11 +353,11 @@ CHUNK_SIZE=500
 CHUNK_OVERLAP=150
 
 # Seeding (optional)
-SEED_EMAIL=owner@saloniq.ai
+SEED_EMAIL=owner@evolvia.ai
 SEED_PASSWORD=ChangeMe123!
 SEED_FIRST_NAME=Salon
 SEED_LAST_NAME=Owner
-SEED_ORG_NAME=SalonIQ Studio
+SEED_ORG_NAME=Evolvia Studio
 ```
 
 ### Web (`apps/web/.env`)

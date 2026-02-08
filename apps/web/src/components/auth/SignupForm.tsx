@@ -34,6 +34,7 @@ export default function SignupForm() {
     event.preventDefault();
     setError(null);
     setLoading(true);
+    let didRedirect = false;
 
     try {
       await register({
@@ -43,11 +44,14 @@ export default function SignupForm() {
         lastName,
         orgName: orgName.trim() || undefined,
       });
-      router.push("/dashboard");
+      didRedirect = true;
+      router.replace("/dashboard");
     } catch (err: any) {
       setError(err?.message || "Signup failed");
     } finally {
-      setLoading(false);
+      if (!didRedirect) {
+        setLoading(false);
+      }
     }
   }
 
@@ -56,7 +60,7 @@ export default function SignupForm() {
   ) : (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Create your SalonIQ account</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Create your Evolvia account</h1>
         <p className="mt-2 text-sm text-gray-500">
           Start organizing appointments, client insights, and AI workflows in minutes.
         </p>

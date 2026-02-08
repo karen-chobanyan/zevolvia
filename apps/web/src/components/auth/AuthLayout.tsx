@@ -10,7 +10,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             <Link href="/" className="inline-flex items-center gap-3 text-gray-900">
               <Image
                 src="/images/logo/logo-bold.svg"
-                alt="SalonIQ logo"
+                alt="Evolvia logo"
                 width={120}
                 height={28}
                 priority

@@ -15,6 +15,8 @@ import { MembershipStatus } from "../../common/enums";
 import { JwtPayload } from "./types/jwt-payload";
 import { RefreshToken } from "./entities/refresh-token.entity";
 import { Permission } from "../identity/entities/permission.entity";
+import { EmailService } from "../email/email.service";
+import { PasswordResetToken } from "./entities/password-reset-token.entity";
 
 type RegisterInput = {
   email: string;
@@ -52,6 +54,9 @@ export class AuthService {
     private readonly permissionRepo: Repository<Permission>,
     @InjectRepository(RefreshToken)
     private readonly refreshTokenRepo: Repository<RefreshToken>,
+    @InjectRepository(PasswordResetToken)
+    private readonly passwordResetTokenRepo: Repository<PasswordResetToken>,
+    private readonly emailService: EmailService,
   ) {}
 
   async validateUser(email: string, password: string): Promise<User | null> {
@@ -115,7 +120,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(input.password, 12);
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
-    const orgName = input.orgName?.trim() || name || "SalonIQ Workspace";
+    const orgName = input.orgName?.trim() || name || "Evolvia Workspace";
 
     this.logger.debug({ email, orgName }, "Creating user and organization");
 
@@ -197,6 +202,171 @@ export class AuthService {
     });
   }
 
+  async forgotPassword(email: string): Promise<void> {
+    const normalizedEmail = email?.trim().toLowerCase();
+    if (!normalizedEmail) {
+      throw new BadRequestException("Email is required");
+    }
+
+    const user = await this.userRepo.findOne({ where: { email: normalizedEmail } });
+    if (!user) {
+      this.logger.info({ email: normalizedEmail }, "Password reset requested for unknown email");
+      return;
+    }
+
+    const orgId = await this.getDefaultOrgId(user.id);
+    if (!orgId) {
+      this.logger.warn({ userId: user.id }, "Password reset skipped: no active membership");
+      return;
+    }
+
+    const resetToken = this.generatePasswordResetToken();
+    const tokenHash = this.hashToken(resetToken);
+    const expiresAt = new Date(Date.now() + this.getPasswordResetTokenMaxAgeMs());
+
+    await this.passwordResetTokenRepo.manager.transaction(async (manager) => {
+      await manager.update(
+        PasswordResetToken,
+        { orgId, userId: user.id, usedAt: IsNull() },
+        { usedAt: new Date() },
+      );
+
+      await manager.save(
+        manager.create(PasswordResetToken, {
+          orgId,
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+          usedAt: null,
+        }),
+      );
+    });
+
+    const sent = await this.emailService.sendPasswordResetEmail({
+      email: user.email,
+      resetToken,
+    });
+
+    if (!sent) {
+      this.logger.error({ userId: user.id, email: user.email }, "Failed to send reset email");
+    }
+  }
+
+  async changePassword(
+    userId: string,
+    orgId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<void> {
+    const current = currentPassword?.trim();
+    const next = newPassword?.trim();
+
+    if (!current || !next) {
+      throw new BadRequestException("Current password and new password are required");
+    }
+
+    if (current === next) {
+      throw new BadRequestException("New password must be different from current password");
+    }
+
+    const membership = await this.getActiveMembership(userId, orgId);
+    if (!membership) {
+      throw new UnauthorizedException("No active membership for org");
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user?.passwordHash) {
+      throw new UnauthorizedException("Invalid current password");
+    }
+
+    const isMatch = await bcrypt.compare(current, user.passwordHash);
+    if (!isMatch) {
+      throw new UnauthorizedException("Invalid current password");
+    }
+
+    const passwordHash = await bcrypt.hash(next, 12);
+    const now = new Date();
+
+    await this.userRepo.manager.transaction(async (manager) => {
+      await manager.update(User, { id: user.id }, { passwordHash });
+      await manager.update(
+        RefreshToken,
+        { userId: user.id, revokedAt: IsNull() },
+        { revokedAt: now },
+      );
+      await manager.update(
+        PasswordResetToken,
+        { userId: user.id, usedAt: IsNull() },
+        { usedAt: now },
+      );
+    });
+
+    this.logger.info({ userId: user.id }, "Password changed successfully");
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    const rawToken = token?.trim();
+    const nextPassword = newPassword?.trim();
+
+    if (!rawToken || !nextPassword) {
+      throw new BadRequestException("Token and new password are required");
+    }
+
+    const tokenHash = this.hashToken(rawToken);
+    const resetToken = await this.passwordResetTokenRepo.findOne({
+      where: { tokenHash, usedAt: IsNull() },
+    });
+
+    if (!resetToken || resetToken.expiresAt <= new Date()) {
+      throw new BadRequestException("Invalid or expired reset token");
+    }
+
+    const user = await this.userRepo.findOne({ where: { id: resetToken.userId } });
+    if (!user) {
+      throw new BadRequestException("Invalid or expired reset token");
+    }
+
+    const membership = await this.getActiveMembership(user.id, resetToken.orgId);
+    if (!membership) {
+      throw new BadRequestException("Invalid or expired reset token");
+    }
+
+    if (user.passwordHash) {
+      const isSamePassword = await bcrypt.compare(nextPassword, user.passwordHash);
+      if (isSamePassword) {
+        throw new BadRequestException("New password must be different from current password");
+      }
+    }
+
+    const passwordHash = await bcrypt.hash(nextPassword, 12);
+    const now = new Date();
+
+    await this.passwordResetTokenRepo.manager.transaction(async (manager) => {
+      const consumeResult = await manager.update(
+        PasswordResetToken,
+        { id: resetToken.id, usedAt: IsNull() },
+        { usedAt: now },
+      );
+      if (!consumeResult.affected) {
+        throw new BadRequestException("Invalid or expired reset token");
+      }
+
+      await manager.update(User, { id: user.id }, { passwordHash });
+      await manager.update(
+        RefreshToken,
+        { userId: user.id, revokedAt: IsNull() },
+        { revokedAt: now },
+      );
+      await manager.update(
+        PasswordResetToken,
+        { userId: user.id, usedAt: IsNull() },
+        { usedAt: now },
+      );
+    });
+
+    this.logger.info({ userId: user.id }, "Password reset successfully");
+  }
+
   async getUserPermissions(userId: string, orgId: string): Promise<string[]> {
     const rows = await this.rolePermissionRepo
       .createQueryBuilder("rp")
@@ -236,7 +406,7 @@ export class AuthService {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "")
-        .slice(0, 50) || "saloniq";
+        .slice(0, 50) || "evolvia";
 
     let slug = base;
     let attempt = 1;
@@ -367,6 +537,10 @@ export class AuthService {
     return { token, tokenHash: this.hashToken(token) };
   }
 
+  private generatePasswordResetToken(): string {
+    return randomBytes(48).toString("hex");
+  }
+
   private hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
   }
@@ -382,6 +556,11 @@ export class AuthService {
   private getRefreshTokenMaxAgeMs(): number {
     const expiresIn = this.configService.get<string>("JWT_REFRESH_EXPIRES_IN") || "1d";
     return this.parseDurationToMs(expiresIn, 24 * 60 * 60 * 1000);
+  }
+
+  private getPasswordResetTokenMaxAgeMs(): number {
+    const expiresIn = this.configService.get<string>("PASSWORD_RESET_EXPIRES_IN") || "30m";
+    return this.parseDurationToMs(expiresIn, 30 * 60 * 1000);
   }
 
   private parseDurationToMs(value: string, fallbackMs: number): number {

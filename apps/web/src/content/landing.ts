@@ -4,7 +4,7 @@ export const heroContent = {
   eyebrow: "SMS booking that plugs into your existing system",
   headline: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
   subheadline:
-    "Clients book like they are texting a friend. SalonIQ checks your real calendar, confirms instantly, and keeps chairs full even after hours.",
+    "Clients book like they are texting a friend. Evolvia checks your real calendar, confirms instantly, and keeps chairs full even after hours.",
   ctaText: "Book a 10-minute demo",
   ctaSubtext: "Setup in 15 minutes. $99/month. No contracts.",
   secondaryCtaText: "See the text flow",
@@ -91,7 +91,7 @@ export const howItWorksSteps = [
   },
   {
     icon: "Bell",
-    title: "SalonIQ books and confirms",
+    title: "Evolvia books and confirms",
     description: "Bookings are confirmed instantly and your team is notified.",
     bullets: [
       "Automatic confirmations",
@@ -137,35 +137,35 @@ export const features = [
 export const comparisonRows = [
   {
     feature: "SMS-native conversation",
-    saloniq: "Native",
+    evolvia: "Native",
     enterprise: "Add-on",
     voiceAi: "Voice-first",
     forms: "No",
   },
   {
     feature: "Setup time",
-    saloniq: "15 minutes",
+    evolvia: "15 minutes",
     enterprise: "Weeks",
     voiceAi: "Days",
     forms: "Hours",
   },
   {
     feature: "Works with existing software",
-    saloniq: "Yes",
+    evolvia: "Yes",
     enterprise: "Must switch",
     voiceAi: "Limited",
     forms: "Yes",
   },
   {
     feature: "Salon-specific understanding",
-    saloniq: "Built for beauty",
+    evolvia: "Built for beauty",
     enterprise: "Generic",
     voiceAi: "Generic",
     forms: "Basic",
   },
   {
     feature: "Monthly cost",
-    saloniq: "$99",
+    evolvia: "$99",
     enterprise: "$300+",
     voiceAi: "$199+",
     forms: "Included",
@@ -246,12 +246,12 @@ export const faqs = [
   {
     question: "Do I have to switch from Vagaro, Fresha, or Boulevard?",
     answer:
-      "No. SalonIQ plugs into your existing system so you keep your calendar, stylists, and workflows.",
+      "No. Evolvia plugs into your existing system so you keep your calendar, stylists, and workflows.",
   },
   {
     question: "What if my clients still prefer calling?",
     answer:
-      "They can. SalonIQ does not replace your personal touch. It simply captures the texts and after-hours requests you cannot answer.",
+      "They can. Evolvia does not replace your personal touch. It simply captures the texts and after-hours requests you cannot answer.",
   },
   {
     question: "How accurate is the booking AI?",
@@ -273,7 +273,7 @@ export const faqs = [
 export const footerContent = {
   headline: "Ready to capture bookings while you sleep?",
   subheadline:
-    "Book more appointments without adding staff. SalonIQ works with the system you already use.",
+    "Book more appointments without adding staff. Evolvia works with the system you already use.",
   ctaText: "Book a 10-minute demo",
   ctaSubtext: "No credit card required. Setup in 15 minutes.",
 };

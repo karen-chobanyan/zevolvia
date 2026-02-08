@@ -17,7 +17,7 @@ async function createUniqueSlug(name: string, orgRepo: Repository<Org>): Promise
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, "-")
       .replace(/(^-|-$)+/g, "")
-      .slice(0, 50) || "saloniq";
+      .slice(0, 50) || "evolvia";
 
   let slug = base;
   let attempt = 1;
@@ -44,9 +44,9 @@ async function seed() {
   const permissionRepo = AppDataSource.getRepository(Permission);
   const rolePermissionRepo = AppDataSource.getRepository(RolePermission);
 
-  const email = (process.env.SEED_EMAIL || "owner@saloniq.ai").trim().toLowerCase();
+  const email = (process.env.SEED_EMAIL || "owner@evolvia.ai").trim().toLowerCase();
   const password = process.env.SEED_PASSWORD || "ChangeMe123!";
-  const orgName = process.env.SEED_ORG_NAME?.trim() || "SalonIQ Studio";
+  const orgName = process.env.SEED_ORG_NAME?.trim() || "Evolvia Studio";
   const firstName = (process.env.SEED_FIRST_NAME || "Salon").trim();
   const lastName = (process.env.SEED_LAST_NAME || "Owner").trim();
   const name = [firstName, lastName].filter(Boolean).join(" ").trim() || null;

@@ -10,13 +10,14 @@ import { JwtStrategy } from "./strategies/jwt.strategy";
 import { LocalStrategy } from "./strategies/local.strategy";
 import { IdentityModule } from "../identity/identity.module";
 import { RefreshToken } from "./entities/refresh-token.entity";
+import { PasswordResetToken } from "./entities/password-reset-token.entity";
 
 @Module({
   imports: [
     ConfigModule,
     forwardRef(() => IdentityModule),
     PassportModule,
-    TypeOrmModule.forFeature([RefreshToken]),
+    TypeOrmModule.forFeature([RefreshToken, PasswordResetToken]),
     JwtModule.registerAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({

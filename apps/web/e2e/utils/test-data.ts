@@ -15,8 +15,8 @@ export function createE2EUser(prefix: string = "user"): E2EUserInput {
   return {
     firstName: "Taylor",
     lastName: `Tester${suffix}`,
-    email: `${prefix}.${suffix}@saloniq.test`,
+    email: `${prefix}.${suffix}@evolvia.test`,
     password: "Password123!",
-    orgName: `SalonIQ E2E Org ${suffix}`,
+    orgName: `Evolvia E2E Org ${suffix}`,
   };
 }

@@ -32,6 +32,6 @@ export class HomePage {
 
   async expectMainLayout() {
     await expect(this.page.getByRole("navigation")).toBeVisible();
-    await expect(this.page.getByRole("link", { name: "SalonIQ" }).first()).toBeVisible();
+    await expect(this.page.getByRole("img", { name: "Evolvia Logo" }).first()).toBeVisible();
   }
 }

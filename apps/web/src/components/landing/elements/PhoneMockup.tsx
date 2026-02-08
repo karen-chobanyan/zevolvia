@@ -68,10 +68,10 @@ export function PhoneMockup({ messages, className, animated = true }: PhoneMocku
             <div className="border-b border-gray-200 bg-gray-100 px-4 py-3 pt-2">
               <div className="flex items-center gap-3">
                 <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-brand-400 to-brand-700 shadow-sm">
-                  <span className="text-sm font-bold text-white">SI</span>
+                  <span className="text-sm font-bold text-white">EV</span>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">SalonIQ Booking</div>
+                  <div className="text-sm font-semibold text-gray-900">Evolvia Booking</div>
                   <div className="text-xs text-green-600 font-medium">Online</div>
                 </div>
               </div>

@@ -25,14 +25,14 @@ test.describe("Accessibility smoke", () => {
   test("login page exposes form controls for keyboard users", async ({ page }) => {
     await page.goto("/login");
 
-    const emailField = page.getByPlaceholder("you@saloniq.com");
+    const emailField = page.getByPlaceholder("you@evolvia.com");
     const passwordField = page.getByPlaceholder("Enter your password");
     const submitButton = page.getByRole("button", { name: "Sign in" });
 
     await expect(emailField).toBeVisible();
     await expect(passwordField).toBeVisible();
     await expect(submitButton).toBeVisible();
-    await expect(emailField).toHaveAccessibleName("you@saloniq.com");
+    await expect(emailField).toHaveAccessibleName("you@evolvia.com");
     await expect(passwordField).toHaveAccessibleName("Enter your password");
     await expect(submitButton).toHaveAccessibleName("Sign in");
   });
