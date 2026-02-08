@@ -71,7 +71,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
           {/* Desktop CTA */}
           <div className="hidden items-center gap-4 md:flex">
             <Link
-              href="/auth/signin"
+              href="/login"
               className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               Sign In
@@ -122,7 +122,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
                 ))}
                 <hr className="my-2 border-gray-200" />
                 <Link
-                  href="/auth/signin"
+                  href="/login"
                   className="rounded-lg px-4 py-3 text-base font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
                 >
                   Sign In

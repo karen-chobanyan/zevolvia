@@ -77,7 +77,7 @@ api.interceptors.response.use(
       } catch {}
       if (typeof window !== "undefined") {
         const next = encodeURIComponent(window.location.pathname + window.location.search);
-        window.location.href = `/auth/signin?next=${next}`;
+        window.location.href = `/login?next=${next}`;
       }
       throw refreshErr;
     } finally {
