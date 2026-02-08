@@ -21,6 +21,7 @@ import { buildConversationHistory } from "./tools/conversation-builder";
 import { ChatToolExecutor } from "./tools/tool-executor";
 import { UserProfile } from "../profile/entities/user-profile.entity";
 import { Membership } from "../identity/entities/membership.entity";
+import { Org } from "../identity/entities/org.entity";
 
 const DEFAULT_TOP_K = 5;
 const MAX_TOP_K = 20;
@@ -71,6 +72,8 @@ export class ChatService {
     private readonly userProfileRepo: Repository<UserProfile>,
     @InjectRepository(Membership)
     private readonly membershipRepo: Repository<Membership>,
+    @InjectRepository(Org)
+    private readonly orgRepo: Repository<Org>,
     @InjectDataSource()
     private readonly dataSource: DataSource,
   ) {
@@ -600,15 +603,28 @@ export class ChatService {
       .getOne();
 
     const candidate = profile?.timeZone?.trim();
-    if (!candidate) {
-      return this.defaultTimeZone;
+    if (candidate && this.isValidTimeZone(candidate)) {
+      return candidate;
     }
 
+    const org = await this.orgRepo.findOne({
+      where: { id: orgId },
+      select: ["timeZone"],
+    });
+    const orgTimeZone = org?.timeZone?.trim();
+    if (orgTimeZone && this.isValidTimeZone(orgTimeZone)) {
+      return orgTimeZone;
+    }
+
+    return this.defaultTimeZone;
+  }
+
+  private isValidTimeZone(value: string) {
     try {
-      new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
-      return candidate;
+      new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+      return true;
     } catch {
-      return this.defaultTimeZone;
+      return false;
     }
   }
 

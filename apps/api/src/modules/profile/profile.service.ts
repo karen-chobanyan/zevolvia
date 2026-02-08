@@ -68,6 +68,44 @@ export class ProfileService {
     return parsed.format("E.164");
   }
 
+  private isValidTimeZone(value: string) {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: value }).format(new Date());
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  private parseTimeToMinutes(value: string) {
+    const match = value.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
+    if (!match) {
+      return null;
+    }
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (!Number.isInteger(hours) || !Number.isInteger(minutes)) {
+      return null;
+    }
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+      return null;
+    }
+    return hours * 60 + minutes;
+  }
+
+  private formatTime(value?: string | null) {
+    if (!value) {
+      return null;
+    }
+    const parts = value.split(":");
+    if (parts.length < 2) {
+      return value;
+    }
+    const hours = parts[0].padStart(2, "0");
+    const minutes = parts[1].padStart(2, "0");
+    return `${hours}:${minutes}`;
+  }
+
   private splitName(name?: string | null) {
     const trimmed = name?.trim();
     if (!trimmed) {
@@ -159,6 +197,9 @@ export class ProfileService {
         name: org.name,
         slug: org.slug,
         phone: org.phone,
+        timeZone: org.timeZone,
+        workingHoursStart: this.formatTime(org.workingHoursStart),
+        workingHoursEnd: this.formatTime(org.workingHoursEnd),
         ownerUserId,
         createdAt: org.createdAt,
       },
@@ -275,6 +316,11 @@ export class ProfileService {
       throw new ForbiddenException("Only organization owners can update org details");
     }
 
+    const org = await this.orgRepo.findOne({ where: { id: orgId } });
+    if (!org) {
+      throw new NotFoundException("Organization not found");
+    }
+
     const updates: Partial<Org> = {};
     if (dto.name !== undefined) {
       const name = dto.name.trim();
@@ -286,26 +332,68 @@ export class ProfileService {
     if (dto.phone !== undefined) {
       updates.phone = this.normalizeOrgPhone(dto.phone);
     }
+    if (dto.timeZone !== undefined) {
+      const normalized = this.normalizeOptional(dto.timeZone);
+      if (normalized && !this.isValidTimeZone(normalized)) {
+        throw new BadRequestException("Invalid time zone");
+      }
+      updates.timeZone = normalized;
+    }
+
+    const shouldValidateHours =
+      dto.workingHoursStart !== undefined || dto.workingHoursEnd !== undefined;
+    if (shouldValidateHours) {
+      const normalizedStart = dto.workingHoursStart?.trim();
+      const normalizedEnd = dto.workingHoursEnd?.trim();
+      const nextStart = normalizedStart ?? org.workingHoursStart;
+      const nextEnd = normalizedEnd ?? org.workingHoursEnd;
+      const startMinutes = this.parseTimeToMinutes(nextStart);
+      const endMinutes = this.parseTimeToMinutes(nextEnd);
+      if (startMinutes === null || endMinutes === null) {
+        throw new BadRequestException("Working hours must be in HH:MM format");
+      }
+      if (startMinutes >= endMinutes) {
+        throw new BadRequestException("Working hours start must be before end");
+      }
+    }
+
+    if (dto.workingHoursStart !== undefined) {
+      const normalized = dto.workingHoursStart?.trim();
+      if (!normalized) {
+        throw new BadRequestException("Working hours start is required");
+      }
+      updates.workingHoursStart = normalized;
+    }
+    if (dto.workingHoursEnd !== undefined) {
+      const normalized = dto.workingHoursEnd?.trim();
+      if (!normalized) {
+        throw new BadRequestException("Working hours end is required");
+      }
+      updates.workingHoursEnd = normalized;
+    }
 
     if (!Object.keys(updates).length) {
       throw new BadRequestException("At least one field is required");
     }
 
     await this.orgRepo.update({ id: orgId }, updates);
-    const org = await this.orgRepo.findOne({ where: { id: orgId } });
-    if (!org) {
+    const updatedOrg = await this.orgRepo.findOne({ where: { id: orgId } });
+    if (!updatedOrg) {
       throw new NotFoundException("Organization not found");
     }
     const ownerUserId = await this.getOwnerUserId(orgId);
 
     return {
       org: {
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        phone: org.phone,
+        id: updatedOrg.id,
+        name: updatedOrg.name,
+        slug: updatedOrg.slug,
+        phone: updatedOrg.phone,
+        timeZone: updatedOrg.timeZone,
+        workingHoursStart: this.formatTime(updatedOrg.workingHoursStart),
+        workingHoursEnd: this.formatTime(updatedOrg.workingHoursEnd),
         ownerUserId,
-        createdAt: org.createdAt,
+        createdAt: updatedOrg.createdAt,
       },
     };
   }

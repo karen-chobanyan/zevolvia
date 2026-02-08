@@ -11,6 +11,9 @@ export type OrgInfo = {
   name?: string | null;
   slug?: string | null;
   phone?: string | null;
+  timeZone?: string | null;
+  workingHoursStart?: string | null;
+  workingHoursEnd?: string | null;
   ownerUserId?: string | null;
   createdAt?: string | Date | null;
 };
@@ -20,16 +23,50 @@ export type MembershipInfo = {
   joinedAt?: string | Date | null;
 };
 
+const TIMEZONE_OPTIONS = [
+  { value: "UTC", label: "UTC" },
+  { value: "America/Los_Angeles", label: "Pacific Time (US)" },
+  { value: "America/Denver", label: "Mountain Time (US)" },
+  { value: "America/Chicago", label: "Central Time (US)" },
+  { value: "America/New_York", label: "Eastern Time (US)" },
+  { value: "America/Sao_Paulo", label: "Sao Paulo" },
+  { value: "Europe/London", label: "London" },
+  { value: "Europe/Paris", label: "Paris" },
+  { value: "Europe/Berlin", label: "Berlin" },
+  { value: "Europe/Amsterdam", label: "Amsterdam" },
+  { value: "Europe/Stockholm", label: "Stockholm" },
+  { value: "Africa/Johannesburg", label: "Johannesburg" },
+  { value: "Asia/Dubai", label: "Dubai" },
+  { value: "Asia/Singapore", label: "Singapore" },
+  { value: "Asia/Tokyo", label: "Tokyo" },
+  { value: "Asia/Seoul", label: "Seoul" },
+  { value: "Australia/Sydney", label: "Sydney" },
+];
+
 type OrgInfoCardProps = {
   org: OrgInfo | null;
   membership?: MembershipInfo | null;
   canEdit: boolean;
-  onSave: (payload: { name?: string; phone?: string | null }) => Promise<void>;
+  onSave: (payload: {
+    name?: string;
+    phone?: string | null;
+    timeZone?: string | null;
+    workingHoursStart?: string;
+    workingHoursEnd?: string;
+  }) => Promise<void>;
 };
 
 function getDisplayValue(value?: string | null) {
   const trimmed = value?.trim();
   return trimmed ? trimmed : "-";
+}
+
+function getTimeZoneLabel(value?: string | null) {
+  if (!value?.trim()) {
+    return "-";
+  }
+  const match = TIMEZONE_OPTIONS.find((option) => option.value === value);
+  return match?.label ?? value;
 }
 
 function formatDate(value?: string | Date | null) {
@@ -51,12 +88,24 @@ function getErrorMessage(error: any, fallback: string) {
 
 export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInfoCardProps) {
   const { isOpen, openModal, closeModal } = useModal();
-  const [form, setForm] = useState({ name: "", phone: "" });
+  const [form, setForm] = useState({
+    name: "",
+    phone: "",
+    timeZone: "",
+    workingHoursStart: "",
+    workingHoursEnd: "",
+  });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    setForm({ name: org?.name ?? "", phone: org?.phone ?? "" });
+    setForm({
+      name: org?.name ?? "",
+      phone: org?.phone ?? "",
+      timeZone: org?.timeZone ?? "",
+      workingHoursStart: org?.workingHoursStart ?? "09:00",
+      workingHoursEnd: org?.workingHoursEnd ?? "20:00",
+    });
   }, [org]);
 
   const handleSave = async () => {
@@ -65,16 +114,18 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
     }
     const nextName = form.name.trim();
     const nextPhone = form.phone.trim();
-    if (!nextName && !nextPhone) {
-      setError("Organization name or phone is required.");
-      return;
-    }
+    const nextTimeZone = form.timeZone.trim();
+    const nextWorkingHoursStart = form.workingHoursStart.trim();
+    const nextWorkingHoursEnd = form.workingHoursEnd.trim();
     setSaving(true);
     setError(null);
     try {
       await onSave({
         name: nextName || undefined,
         phone: nextPhone || null,
+        timeZone: nextTimeZone || null,
+        workingHoursStart: nextWorkingHoursStart || undefined,
+        workingHoursEnd: nextWorkingHoursEnd || undefined,
       });
       closeModal();
     } catch (err: any) {
@@ -115,6 +166,24 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
               <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">Phone</p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
                 {getDisplayValue(org?.phone)}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Time Zone
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {getTimeZoneLabel(org?.timeZone)}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Working Hours
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {getDisplayValue(org?.workingHoursStart)} - {getDisplayValue(org?.workingHoursEnd)}
               </p>
             </div>
 
@@ -208,6 +277,46 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
                   type="text"
                   value={form.phone}
                   onChange={(event) => setForm((prev) => ({ ...prev, phone: event.target.value }))}
+                />
+              </div>
+
+              <div>
+                <Label>Time Zone (IANA)</Label>
+                <select
+                  value={form.timeZone}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, timeZone: event.target.value }))
+                  }
+                  className="h-11 w-full rounded-lg border border-gray-300 bg-transparent px-4 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/20 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90 dark:focus:border-brand-800"
+                >
+                  <option value="">Select time zone</option>
+                  {TIMEZONE_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <Label>Working Hours Start</Label>
+                <Input
+                  type="time"
+                  value={form.workingHoursStart}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, workingHoursStart: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Working Hours End</Label>
+                <Input
+                  type="time"
+                  value={form.workingHoursEnd}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, workingHoursEnd: event.target.value }))
+                  }
                 />
               </div>
             </div>

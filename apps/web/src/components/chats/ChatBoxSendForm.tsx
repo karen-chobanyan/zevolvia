@@ -45,7 +45,7 @@ export default function ChatBoxSendForm({
       <form className="flex items-center justify-between flex-col" onSubmit={handleSubmit}>
         <div className="relative w-full h-20">
           <textarea
-            placeholder="Ask KitchenDocs AI..."
+            placeholder="Ask Evolvia..."
             value={value}
             onChange={(event) => onChange(event.target.value)}
             onKeyDown={handleKeyDown}

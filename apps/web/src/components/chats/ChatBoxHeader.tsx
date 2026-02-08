@@ -28,7 +28,7 @@ export default function ChatBoxHeader({ sessionTitle, onNewChat, sending }: Chat
         <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-white p-1 shadow-sm dark:bg-gray-900">
           <Image
             src="/images/logo/DWavatar.jpg"
-            alt="KitchenDocs AI"
+            alt="Evolvia"
             width={40}
             height={40}
             className="h-full w-full object-contain"
@@ -37,7 +37,7 @@ export default function ChatBoxHeader({ sessionTitle, onNewChat, sending }: Chat
         </div>
         <div>
           <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">{sessionTitle}</h5>
-          <p className="text-xs text-gray-500 dark:text-gray-400">KitchenDocs AI assistant</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400">Evolvia assistant</p>
         </div>
       </div>
 

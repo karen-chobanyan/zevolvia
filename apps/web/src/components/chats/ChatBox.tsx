@@ -336,7 +336,7 @@ export default function ChatBox({
                   <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-white p-1 shadow-sm dark:bg-gray-900">
                     <Image
                       src="/images/logo/DWavatar.jpg"
-                      alt="KitchenDocs AI"
+                      alt="Evolvia"
                       width={32}
                       height={32}
                       className="h-full w-full object-contain"
@@ -364,7 +364,7 @@ export default function ChatBox({
             <div className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-white p-1 shadow-sm dark:bg-gray-900">
               <Image
                 src="/images/logo/DWavatar.jpg"
-                alt="KitchenDocs AI"
+                alt="Evolvia"
                 width={32}
                 height={32}
                 className="h-full w-full object-contain"
@@ -372,7 +372,7 @@ export default function ChatBox({
             </div>
             <div className="max-w-[80%]">
               <div className="flex items-center gap-2 rounded-lg rounded-tl-sm bg-gray-100 px-3 py-2 text-gray-800 dark:bg-white/5 dark:text-white/90">
-                <span className="sr-only">KitchenDocs AI is typing</span>
+                <span className="sr-only">Evolvia is typing</span>
                 <div className="flex items-center gap-1" aria-hidden="true">
                   <span
                     className="h-2 w-2 rounded-full bg-gray-400/80 animate-bounce"

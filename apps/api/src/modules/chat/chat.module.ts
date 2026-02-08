@@ -10,10 +10,11 @@ import { ChatSession } from "./entities/chat-session.entity";
 import { ChatToolExecutor } from "./tools/tool-executor";
 import { UserProfile } from "../profile/entities/user-profile.entity";
 import { Membership } from "../identity/entities/membership.entity";
+import { Org } from "../identity/entities/org.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ChatSession, ChatMessage, UserProfile, Membership]),
+    TypeOrmModule.forFeature([ChatSession, ChatMessage, UserProfile, Membership, Org]),
     AuthModule,
     BookingModule,
     IngestionModule,

@@ -127,11 +127,20 @@ export class ChatToolExecutor {
 
   private async handleGetStaffForService(orgId: string, serviceId: string) {
     const memberships = await this.staffServicesService.getStaffForService(orgId, serviceId);
-    return memberships.map((m) => ({
+    const staff = memberships.map((m) => ({
       staffId: m.userId,
       name: m.user?.name ?? m.user?.email ?? "Staff",
       email: m.user?.email,
     }));
+
+    if (staff.length === 0) {
+      return {
+        staff,
+        note: "No staff are assigned to this service yet.",
+      };
+    }
+
+    return { staff };
   }
 
   private async handleGetAvailableSlots(
@@ -243,7 +252,7 @@ export class ChatToolExecutor {
   }
 
   private async handleGetWorkingHours(orgId: string, staffId?: string) {
-    const records = this.staffAvailabilityService.getWorkingHours(orgId, staffId);
+    const records = await this.staffAvailabilityService.getWorkingHours(orgId, staffId);
 
     return records.map((r) => ({
       staffId: r.staffId ?? staffId ?? null,
