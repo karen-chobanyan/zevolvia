@@ -37,8 +37,23 @@ function sleep(ms: number) {
 
 function parseApiPath(url: string) {
   const pathname = new URL(url).pathname;
-  const match = pathname.match(/\/api(\/.*)?$/);
-  return match?.[1] ?? "/";
+  const prefixedApiPathMatch = pathname.match(/\/api(\/.*)?$/);
+  if (prefixedApiPathMatch) {
+    return prefixedApiPathMatch[1] ?? "/";
+  }
+
+  // Support environments where NEXT_PUBLIC_API_URL has no "/api" prefix.
+  if (
+    /^\/auth\/.+/.test(pathname) ||
+    pathname === "/dashboard/summary" ||
+    /^\/chat\/.+/.test(pathname) ||
+    pathname === "/billing/status" ||
+    /^\/file-manager\/files(?:\/.+)?$/.test(pathname)
+  ) {
+    return pathname;
+  }
+
+  return null;
 }
 
 export class ApiMock {
@@ -64,7 +79,7 @@ export class ApiMock {
   }
 
   async install() {
-    await this.page.route("**/api/**", async (route) => {
+    await this.page.route("**", async (route) => {
       await this.handleApiRoute(route, route.request());
     });
   }
@@ -98,9 +113,50 @@ export class ApiMock {
     this.chatListDelayMs = 0;
   }
 
+  private deriveOrigin(requestUrl: string): string {
+    try {
+      const url = new URL(requestUrl);
+      return url.origin;
+    } catch {
+      return "*";
+    }
+  }
+
+  private corsHeaders(): Record<string, string> {
+    const origin = this.deriveOrigin(this.page.url());
+    return {
+      "access-control-allow-origin": origin,
+      "access-control-allow-credentials": "true",
+      "access-control-allow-methods": "GET,POST,PATCH,PUT,DELETE,OPTIONS",
+      "access-control-allow-headers": "content-type,authorization",
+    };
+  }
+
   private async handleApiRoute(route: Route, request: Request) {
+    const resourceType = request.resourceType();
+    const allowedTypes = new Set(["fetch", "xhr", "preflight", "other"]);
+
+    if (!allowedTypes.has(resourceType)) {
+      await route.continue();
+      return;
+    }
+
     const method = request.method().toUpperCase();
+
+    if (method === "OPTIONS") {
+      await route.fulfill({
+        status: 204,
+        headers: this.corsHeaders(),
+      });
+      return;
+    }
+
     const apiPath = parseApiPath(request.url());
+
+    if (!apiPath) {
+      await route.continue();
+      return;
+    }
 
     if (method === "POST" && apiPath === "/auth/login") {
       if (this.nextLoginErrorMessage) {
@@ -293,11 +349,12 @@ export class ApiMock {
   }
 
   private async fulfillJson(route: Route, status: number, body: unknown) {
+    const origin = this.deriveOrigin(this.page.url());
     await route.fulfill({
       status,
       contentType: "application/json",
       headers: {
-        "access-control-allow-origin": "*",
+        "access-control-allow-origin": origin,
         "access-control-allow-credentials": "true",
       },
       body: JSON.stringify(body),

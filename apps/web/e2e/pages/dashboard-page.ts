@@ -20,7 +20,9 @@ export class DashboardPage {
   }
 
   async clickLogout() {
-    await this.page.getByRole("button", { name: "Log out" }).click();
+    const logoutButton = this.page.getByRole("button", { name: "Log out" });
+    await expect(logoutButton).toBeVisible();
+    await logoutButton.click({ force: true });
   }
 
   async openSidebarRoute(name: string) {

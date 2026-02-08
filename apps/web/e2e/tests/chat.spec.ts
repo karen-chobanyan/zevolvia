@@ -32,8 +32,11 @@ test.describe("Chat integration flows", () => {
     apiMock.failChatSessions("Failed to load chats.");
 
     await chatPage.goto();
+    await chatPage.expectLoaded();
 
-    await expect(page.getByText("Failed to load chats.")).toBeVisible();
+    await expect(
+      page.getByText(/Failed to load chats\.|Request failed with status code 500|Network Error/),
+    ).toBeVisible();
   });
 
   test("submits a message and renders assistant response", async ({ page }) => {

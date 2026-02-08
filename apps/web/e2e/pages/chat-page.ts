@@ -12,7 +12,7 @@ export class ChatPage {
   }
 
   async expectExistingConversation() {
-    await expect(this.page.getByText("Stylist scheduling questions")).toBeVisible();
+    await expect(this.page.getByText("Stylist scheduling questions").first()).toBeVisible();
     await expect(
       this.page.getByText("Offer a same-day confirmation text and waitlist backup."),
     ).toBeVisible();

@@ -1,13 +1,16 @@
 import { expect, Page } from "@playwright/test";
 
-function escapeRegex(value: string) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 export async function waitForPathname(page: Page, pathname: string) {
-  const urlMatcher = new RegExp(`${escapeRegex(pathname)}(?:\?.*)?$`);
-  await page.waitForURL(urlMatcher);
-  await expect(page).toHaveURL(urlMatcher);
+  await page.waitForURL((url) => url.pathname === pathname);
+  await expect
+    .poll(() => {
+      try {
+        return new URL(page.url()).pathname;
+      } catch {
+        return "";
+      }
+    })
+    .toBe(pathname);
 }
 
 export async function waitForInteractive(page: Page) {

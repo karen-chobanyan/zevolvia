@@ -3,7 +3,7 @@ import { loadTestEnvironment } from "./e2e/utils/env";
 
 const env = loadTestEnvironment(process.cwd());
 const baseURL = env.BASE_URL ?? "http://127.0.0.1:3000";
-const apiURL = env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:4010/api";
+const apiURL = env.NEXT_PUBLIC_API_URL ?? `${baseURL}/api`;
 
 export default defineConfig({
   testDir: "./e2e/tests",

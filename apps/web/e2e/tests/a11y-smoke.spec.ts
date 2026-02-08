@@ -6,28 +6,35 @@ test.describe("Accessibility smoke", () => {
   test("home page exposes core landmarks and heading", async ({ page }) => {
     await page.goto("/");
 
-    await expect(page.getByRole("navigation")).toBeVisible();
-    await expect(page.getByRole("main")).toBeVisible();
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
-      }),
-    ).toBeVisible();
+    const navigation = page.getByRole("navigation").first();
+    const main = page.getByRole("main");
+    const heroHeading = page.getByRole("heading", {
+      level: 1,
+      name: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+    });
 
-    const snapshot = await page.accessibility.snapshot();
-    expect(snapshot).not.toBeNull();
+    await expect(navigation).toBeVisible();
+    await expect(page.getByRole("main")).toBeVisible();
+    await expect(heroHeading).toBeVisible();
+    await expect(heroHeading).toHaveAccessibleName(
+      "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+    );
+    await expect(main).toContainText("Book a 10-minute demo");
   });
 
   test("login page exposes form controls for keyboard users", async ({ page }) => {
     await page.goto("/login");
 
-    await expect(page.getByPlaceholder("you@saloniq.com")).toBeVisible();
-    await expect(page.getByPlaceholder("Enter your password")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Sign in" })).toBeVisible();
+    const emailField = page.getByPlaceholder("you@saloniq.com");
+    const passwordField = page.getByPlaceholder("Enter your password");
+    const submitButton = page.getByRole("button", { name: "Sign in" });
 
-    const snapshot = await page.accessibility.snapshot();
-    expect(snapshot).not.toBeNull();
+    await expect(emailField).toBeVisible();
+    await expect(passwordField).toBeVisible();
+    await expect(submitButton).toBeVisible();
+    await expect(emailField).toHaveAccessibleName("you@saloniq.com");
+    await expect(passwordField).toHaveAccessibleName("Enter your password");
+    await expect(submitButton).toHaveAccessibleName("Sign in");
   });
 
   test("chat page keeps accessible status and heading semantics", async ({ page, apiMock }) => {
@@ -35,10 +42,12 @@ test.describe("Accessibility smoke", () => {
 
     await page.goto("/dashboard/chat");
 
-    await expect(page.getByRole("heading", { level: 2, name: "AI Chat" })).toBeVisible();
-    await expect(page.getByText("Stylist scheduling questions")).toBeVisible();
+    const chatHeading = page.getByRole("heading", { level: 2, name: "AI Chat" });
+    const chatInput = page.getByPlaceholder("Ask Evolvia...");
 
-    const snapshot = await page.accessibility.snapshot({ interestingOnly: true });
-    expect(snapshot).not.toBeNull();
+    await expect(page.getByRole("heading", { level: 2, name: "AI Chat" })).toBeVisible();
+    await expect(chatHeading).toHaveAccessibleName("AI Chat");
+    await expect(chatInput).toBeVisible();
+    await expect(chatInput).toHaveAccessibleName("Ask Evolvia...");
   });
 });

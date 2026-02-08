@@ -26,10 +26,10 @@ Required variables:
 
 ```bash
 BASE_URL=http://127.0.0.1:3000
-NEXT_PUBLIC_API_URL=http://127.0.0.1:4010/api
+NEXT_PUBLIC_API_URL=http://127.0.0.1:3000/api
 ```
 
-`NEXT_PUBLIC_API_URL` is intentionally pointed to a mock API origin so Playwright can intercept all API traffic.
+`NEXT_PUBLIC_API_URL` is intentionally pointed to same-origin `/api` so Playwright can intercept API traffic deterministically without cross-origin/network flake.
 
 ## Run Locally
 

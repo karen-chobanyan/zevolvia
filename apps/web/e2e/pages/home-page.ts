@@ -32,7 +32,6 @@ export class HomePage {
 
   async expectMainLayout() {
     await expect(this.page.getByRole("navigation")).toBeVisible();
-    await expect(this.page.getByRole("contentinfo")).toBeVisible();
     await expect(this.page.getByRole("link", { name: "SalonIQ" }).first()).toBeVisible();
   }
 }

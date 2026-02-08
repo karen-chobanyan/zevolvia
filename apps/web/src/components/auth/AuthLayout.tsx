@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -6,11 +7,14 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
         <div className="flex items-center justify-center px-6 py-12">
           <div className="w-full max-w-md">
-            <Link href="/apps/web/public" className="inline-flex items-center gap-2 text-gray-900">
-              <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-brand-500 text-white font-semibold">
-                SI
-              </span>
-              <span className="text-lg font-semibold">SalonIQ</span>
+            <Link href="/" className="inline-flex items-center gap-3 text-gray-900">
+              <Image
+                src="/images/logo/logo-bold.svg"
+                alt="SalonIQ logo"
+                width={120}
+                height={28}
+                priority
+              />
             </Link>
             <div className="mt-8">{children}</div>
           </div>

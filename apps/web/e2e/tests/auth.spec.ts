@@ -16,7 +16,10 @@ test.describe("Authentication flows", () => {
     await page.goto("/dashboard");
 
     await waitForPathname(page, "/login");
-    await page.waitForURL(/next=%2Fdashboard|next=\/dashboard/);
+    await page.waitForURL((url) => {
+      const next = url.searchParams.get("next");
+      return next === "/dashboard";
+    });
   });
 
   test("shows validation and invalid credential errors on login", async ({ page, apiMock }) => {
