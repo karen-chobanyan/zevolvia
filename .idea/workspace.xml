@@ -9,7 +9,7 @@
   </component>
   <component name="CopilotPersistence">
     <persistenceIdMap>
-      <entry key="_/Users/karenchobanyan/dev/saloniq" value="394gXwW9KQRjKUxjAeXKcwzCqVj" />
+      <entry key="_/Users/karenchobanyan/dev/zevolvia" value="394gXwW9KQRjKUxjAeXKcwzCqVj" />
     </persistenceIdMap>
   </component>
   <component name="Git.Settings">
@@ -33,12 +33,12 @@
     &quot;SHARE_PROJECT_CONFIGURATION_FILES&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;master&quot;,
     &quot;javascript.preferred.runtime.type.id&quot;: &quot;node&quot;,
-    &quot;last_opened_file_path&quot;: &quot;/Users/karenchobanyan/dev/saloniq&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/Users/karenchobanyan/dev/zevolvia&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
     &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
     &quot;nodejs_package_manager_path&quot;: &quot;pnpm&quot;,
-    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/karenchobanyan/dev/saloniq/node_modules/prettier&quot;,
-    &quot;ts.external.directory.path&quot;: &quot;/Users/karenchobanyan/dev/saloniq/apps/api/node_modules/typescript/lib&quot;,
+    &quot;prettierjs.PrettierConfiguration.Package&quot;: &quot;/Users/karenchobanyan/dev/zevolvia/node_modules/prettier&quot;,
+    &quot;ts.external.directory.path&quot;: &quot;/Users/karenchobanyan/dev/zevolvia/apps/api/node_modules/typescript/lib&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>

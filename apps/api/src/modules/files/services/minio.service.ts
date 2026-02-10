@@ -24,7 +24,7 @@ export class MinioService implements OnModuleInit {
       accessKey: this.configService.get<string>("MINIO_ACCESS_KEY", "minioadmin"),
       secretKey: this.configService.get<string>("MINIO_SECRET_KEY", "minioadmin"),
     });
-    this.bucket = this.configService.get<string>("MINIO_BUCKET", "saloniq-files");
+    this.bucket = this.configService.get<string>("MINIO_BUCKET", "zevolvia-files");
   }
 
   async onModuleInit(): Promise<void> {

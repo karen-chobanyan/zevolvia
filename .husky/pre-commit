@@ -2,4 +2,4 @@
 . "$(dirname "$0")/_/husky.sh"
 
 pnpm lint-staged
-pnpm --filter saloniq-web test:e2e
+pnpm --filter zevolvia-web test:e2e

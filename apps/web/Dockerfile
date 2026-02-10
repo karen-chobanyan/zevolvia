@@ -9,7 +9,7 @@ ENV HUSKY=0
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/web/package.json apps/web/package.json
 
-RUN pnpm install --filter saloniq-web
+RUN pnpm install --filter zevolvia-web
 
 COPY apps/web apps/web
 
@@ -17,11 +17,11 @@ FROM base AS dev
 
 WORKDIR /app
 EXPOSE 3000
-CMD ["pnpm", "--filter", "saloniq-web", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+CMD ["pnpm", "--filter", "zevolvia-web", "dev", "--", "--hostname", "0.0.0.0", "--port", "3000"]
 
 FROM base AS build
 
-RUN pnpm --filter saloniq-web build
+RUN pnpm --filter zevolvia-web build
 
 FROM node:20-bookworm-slim AS prod
 
@@ -37,4 +37,4 @@ COPY --from=build /app/apps/web/public /app/apps/web/public
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 3000
-CMD ["pnpm", "--filter", "saloniq-web", "start"]
+CMD ["pnpm", "--filter", "zevolvia-web", "start"]

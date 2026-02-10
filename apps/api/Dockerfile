@@ -12,7 +12,7 @@ ENV HUSKY=0
 COPY package.json pnpm-workspace.yaml ./
 COPY apps/api/package.json apps/api/package.json
 
-RUN pnpm install --filter saloniq-api
+RUN pnpm install --filter zevolvia-api
 
 COPY apps/api apps/api
 
@@ -20,11 +20,11 @@ FROM base AS dev
 
 WORKDIR /app
 EXPOSE 3001
-CMD ["pnpm", "--filter", "saloniq-api", "start:dev"]
+CMD ["pnpm", "--filter", "zevolvia-api", "start:dev"]
 
 FROM base AS build
 
-RUN pnpm --filter saloniq-api build
+RUN pnpm --filter zevolvia-api build
 
 FROM node:20-bookworm-slim AS prod
 

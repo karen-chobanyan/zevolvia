@@ -23,7 +23,7 @@ COPY . .
 FROM deps AS build
 ARG APP
 COPY . .
-RUN if [ -n "$APP" ]; then pnpm --filter saloniq-${APP} run build; else pnpm -r run build; fi
+RUN if [ -n "$APP" ]; then pnpm --filter zevolvia-${APP} run build; else pnpm -r run build; fi
 
 FROM build AS prod
 ENV NODE_ENV=production

@@ -1,5 +1,5 @@
 {
-  "name": "saloniq",
+  "name": "zevolvia",
   "private": true,
   "packageManager": "pnpm@8.15.4",
   "workspaces": [
@@ -7,10 +7,10 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:web": "pnpm --filter saloniq-web dev",
-    "dev:api": "pnpm --filter saloniq-api start:dev",
-    "build:web": "pnpm --filter saloniq-web build",
-    "build:api": "pnpm --filter saloniq-api build",
+    "dev:web": "pnpm --filter zevolvia-web dev",
+    "dev:api": "pnpm --filter zevolvia-api start:dev",
+    "build:web": "pnpm --filter zevolvia-web build",
+    "build:api": "pnpm --filter zevolvia-api build",
     "lint": "pnpm -r lint",
     "format": "prettier . --write",
     "prepare": "husky install"

@@ -1,0 +1,8 @@
+services:
+  api-prod:
+    image: registry.gitlab.com/ateroproducts/zevolvia/api:latest
+    build: null
+
+  web-prod:
+    image: registry.gitlab.com/ateroproducts/zevolvia/web:latest
+    build: null

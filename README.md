@@ -128,7 +128,7 @@ User Upload → MinIO Storage → Queue Job → Worker Process:
 ## Project Structure
 
 ```
-saloniq/
+zevolvia/
 ├── apps/
 │   ├── api/                          # NestJS Backend
 │   │   ├── src/
@@ -202,58 +202,83 @@ saloniq/
 
 ### Prerequisites
 
-- **Node.js** 20+
-- **pnpm** 8.15+
-- **Docker** & **Docker Compose**
+- **Docker** & **Docker Compose** (v2)
+- **Node.js** 20+ and **pnpm** 8.15+ (for local-only dev)
 
-### Quick Start
+### Quickstart (Docker)
 
-1. **Clone the repository**
-
-   ```bash
-   git clone <repository-url>
-   cd saloniq
-   ```
-
-2. **Copy environment files**
+1. **Clone and configure**
 
    ```bash
-   cp apps/api/.env.example apps/api/.env
+   git clone git@gitlab.com:ateroproducts/zevolvia.git
+   cd zevolvia
+   cp apps/api/.env.example apps/api/.env.docker
    cp apps/web/.env.example apps/web/.env
    ```
 
-3. **Configure environment variables** (see [Environment Variables](#environment-variables))
-
-4. **Start with Docker Compose**
+2. **Dev (hot reload)**
 
    ```bash
-   docker-compose up
+   make dev
+   ```
+
+3. **Prod-like (built images)**
+
+   ```bash
+   make prod
+   ```
+
+4. **Stop services**
+
+   ```bash
+   make dev-down
+   make prod-down
+   ```
+
+5. **Logs / status**
+
+   ```bash
+   make dev-logs
+   make dev-ps
    ```
 
    This starts:
-   - PostgreSQL (port 5432)
+   - PostgreSQL + pgvector (port 5432)
    - Redis (port 6379)
    - MinIO (ports 9000, 9001)
    - API server (port 3001)
    - Web app (port 3000)
 
-5. **Run database migrations**
+6. **Run database migrations**
 
    ```bash
-   docker-compose exec api pnpm --filter saloniq-api migration:run
+   docker compose --profile dev exec api pnpm --filter zevolvia-api migration:run
    ```
 
-6. **Seed the database** (optional)
+7. **Seed the database** (optional)
 
    ```bash
-   docker-compose exec api pnpm --filter saloniq-api seed
+   docker compose --profile dev exec api pnpm --filter zevolvia-api seed
    ```
 
-7. **Access the application**
+8. **Access the application**
    - Web App: http://localhost:3000
    - API: http://localhost:3001/api
    - MinIO Console: http://localhost:9001
-   - Twilio Webhook: http://localhost:3001/api/sms/twilio (configure in Twilio)
+
+You can run the same flows without `make`:
+
+```bash
+docker compose --profile dev up --build
+```
+
+If Docker dev services complain about missing Node deps after changing the Dockerfile or lockfile, reset the shared volume:
+
+```bash
+make dev-down
+docker volume rm evolvia_node_modules
+make dev
+```
 
 ### Local Development (without Docker)
 
@@ -263,16 +288,16 @@ saloniq/
    pnpm install
    ```
 
-2. **Start external services**
+2. **Start infrastructure services**
 
    ```bash
-   docker-compose up db redis minio -d
+   docker compose --profile dev up db redis minio -d
    ```
 
 3. **Run migrations**
 
    ```bash
-   pnpm --filter saloniq-api migration:run
+   pnpm --filter zevolvia-api migration:run
    ```
 
 4. **Start development servers**
@@ -284,6 +309,15 @@ saloniq/
    # Terminal 2 - Web
    pnpm dev:web
    ```
+
+### CI/CD
+
+Docker images are built and pushed to the GitLab Container Registry on every push to the default branch. See `.gitlab-ci.yml` for the pipeline configuration.
+
+| Image | Registry Path                                           |
+| ----- | ------------------------------------------------------- |
+| API   | `registry.gitlab.com/ateroproducts/zevolvia/api:latest` |
+| Web   | `registry.gitlab.com/ateroproducts/zevolvia/web:latest` |
 
 ---
 
@@ -297,7 +331,7 @@ DB_HOST=localhost
 DB_PORT=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
-DB_NAME=saloniq
+DB_NAME=zevolvia
 DB_CONNECT_TIMEOUT_MS=5000
 
 # Authentication
@@ -314,7 +348,7 @@ MINIO_PORT=9000
 MINIO_USE_SSL=false
 MINIO_ACCESS_KEY=minioadmin
 MINIO_SECRET_KEY=minioadmin
-MINIO_BUCKET=saloniq-files
+MINIO_BUCKET=zevolvia-files
 
 # Redis (Job Queue)
 REDIS_HOST=localhost
@@ -753,13 +787,13 @@ pnpm test
 
 ```bash
 # Generate migration from entity changes
-pnpm --filter saloniq-api migration:generate src/database/migrations/MigrationName
+pnpm --filter zevolvia-api migration:generate src/database/migrations/MigrationName
 
 # Run migrations
-pnpm --filter saloniq-api migration:run
+pnpm --filter zevolvia-api migration:run
 
 # Revert last migration
-pnpm --filter saloniq-api migration:revert
+pnpm --filter zevolvia-api migration:revert
 ```
 
 ---
@@ -790,7 +824,7 @@ pnpm build:web
 
 ```bash
 # Build production images
-docker build -f docker/Dockerfile --target prod -t saloniq-api .
+docker build -f docker/Dockerfile --target prod -t zevolvia-api .
 
 # Run with production compose
 docker-compose -f docker-compose.prod.yml up -d

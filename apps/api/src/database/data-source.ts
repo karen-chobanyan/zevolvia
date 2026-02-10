@@ -13,5 +13,6 @@ export const AppDataSource = new DataSource({
   username: configService.getOrThrow("DB_USER"),
   password: configService.getOrThrow("DB_PASSWORD"),
   database: configService.getOrThrow("DB_NAME"),
+  entities: ["src/modules/**/entities/*.entity.ts"],
   migrations: ["src/database/migrations/*.ts"],
 } as DataSourceOptions);
