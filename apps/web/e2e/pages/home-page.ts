@@ -11,7 +11,7 @@ export class HomePage {
     await expect(
       this.page.getByRole("heading", {
         level: 1,
-        name: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+        name: "Your clients text. Evolvia books. Chairs stay full.",
       }),
     ).toBeVisible();
   }

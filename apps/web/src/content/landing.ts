@@ -1,10 +1,10 @@
 import { Bell, Calendar, Clock, MessageSquare, Plug, Sparkles } from "lucide-react";
 
 export const heroContent = {
-  eyebrow: "SMS booking that plugs into your existing system",
-  headline: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+  eyebrow: "Every missed text is a missed booking",
+  headline: "Your clients text. Evolvia books. Chairs stay full.",
   subheadline:
-    "Clients book like they are texting a friend. Evolvia checks your real calendar, confirms instantly, and keeps chairs full even after hours.",
+    "Clients text your salon number like they'd text a friend. Real calendar, real availability, instant confirmation — even at 11 PM.",
   ctaText: "Book a 10-minute demo",
   ctaSubtext: "Setup in 15 minutes. $99/month. No contracts.",
   secondaryCtaText: "See the text flow",

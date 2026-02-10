@@ -10,14 +10,14 @@ test.describe("Accessibility smoke", () => {
     const main = page.getByRole("main");
     const heroHeading = page.getByRole("heading", {
       level: 1,
-      name: "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+      name: "Your clients text. Evolvia books. Chairs stay full.",
     });
 
     await expect(navigation).toBeVisible();
     await expect(page.getByRole("main")).toBeVisible();
     await expect(heroHeading).toBeVisible();
     await expect(heroHeading).toHaveAccessibleName(
-      "The 5-minute SMS booking AI for salons on Vagaro, Fresha, or Boulevard.",
+      "Your clients text. Evolvia books. Chairs stay full.",
     );
     await expect(main).toContainText("Book a 10-minute demo");
   });
