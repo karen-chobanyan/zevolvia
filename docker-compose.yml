@@ -96,26 +96,6 @@ services:
       - ./apps/api/.env.docker
     environment:
       <<: *node-dev-env
-      DB_HOST: db
-      DB_PORT: 5432
-      DB_USER: postgres
-      DB_PASSWORD: postgres
-      DB_NAME: zevolvia
-      JWT_SECRET: dev-secret
-      JWT_EXPIRES_IN: 15m
-      JWT_REFRESH_EXPIRES_IN: 1d
-      WEB_ORIGIN: http://localhost:3000
-      MINIO_ENDPOINT: minio
-      MINIO_PORT: 9000
-      MINIO_USE_SSL: "false"
-      MINIO_ACCESS_KEY: minioadmin
-      MINIO_SECRET_KEY: minioadmin
-      MINIO_BUCKET: zevolvia-files
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
-      EMBEDDING_MODEL: text-embedding-3-small
-      CHUNK_SIZE: 500
-      CHUNK_OVERLAP: 50
     ports:
       - "3001:3001"
     depends_on:

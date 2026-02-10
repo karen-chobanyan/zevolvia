@@ -4,8 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 
 const REQUEST_ID_HEADER = "x-request-id";
 
-interface ReqWithId extends IncomingMessage {
-  id?: string;
+interface ReqWithContext extends IncomingMessage {
   user?: {
     userId: string;
     orgId: string;
@@ -21,7 +20,7 @@ export const loggerConfig = (): Params => {
       level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
 
       genReqId: (req: IncomingMessage) => {
-        const r = req as ReqWithId;
+        const r = req as ReqWithContext;
         const existingId = r.headers[REQUEST_ID_HEADER];
         const requestId = (existingId as string) || uuidv4();
         r.id = requestId;
@@ -29,7 +28,7 @@ export const loggerConfig = (): Params => {
       },
 
       customProps: (req: IncomingMessage) => {
-        const r = req as ReqWithId;
+        const r = req as ReqWithContext;
         return {
           requestId: r.id,
           ...(r.user && {
@@ -66,7 +65,7 @@ export const loggerConfig = (): Params => {
 
       serializers: {
         req: (req: IncomingMessage) => {
-          const r = req as ReqWithId;
+          const r = req as ReqWithContext;
           return {
             id: r.id,
             method: r.method,
