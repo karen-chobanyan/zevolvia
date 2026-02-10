@@ -44,7 +44,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo/logo.svg"
-              alt="KitchenDocs Logo"
+              alt="Evolvia Logo"
               width={160}
               height={40}
               className="h-8 w-auto sm:h-10"
@@ -78,7 +78,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
             </Link>
             <Link
               href="/auth/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
             >
               Start Free Trial <ArrowRight className="h-4 w-4" />
             </Link>
@@ -129,7 +129,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
                 </Link>
                 <Link
                   href="/auth/signup"
-                  className="mx-4 mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#667eea] to-[#764ba2] py-3 text-base font-semibold text-white"
+                  className="mx-4 mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-400 to-brand-600 py-3 text-base font-semibold text-white"
                 >
                   Start Free Trial <ArrowRight className="h-5 w-5" />
                 </Link>

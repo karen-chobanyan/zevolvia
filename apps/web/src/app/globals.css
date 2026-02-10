@@ -38,19 +38,19 @@
   --color-white: #ffffff;
   --color-black: #101828;
 
-  /* Champagne Gold Palette */
-  --color-brand-25: #FDFBF7;
-  --color-brand-50: #FAF6EF;
-  --color-brand-100: #F3EBDD;
-  --color-brand-200: #E6D2B3;
-  --color-brand-300: #D9B98A;
-  --color-brand-400: #CCA061;
-  --color-brand-500: #C5A065; /* Base Gold */
-  --color-brand-600: #B08D55;
-  --color-brand-700: #8E7144;
-  --color-brand-800: #6B5533;
-  --color-brand-900: #493922;
-  --color-brand-950: #261D11;
+  /* Orchid-Purple Palette — matches logo gradient */
+  --color-brand-25: #FDF4FF;
+  --color-brand-50: #FBF3FF;
+  --color-brand-100: #F6E8FF;
+  --color-brand-200: #EFD2FE;
+  --color-brand-300: #E4ADFC;
+  --color-brand-400: #D57EF9;
+  --color-brand-500: #C24DEF; /* Base Orchid-Purple */
+  --color-brand-600: #A82CD3;
+  --color-brand-700: #8E1FAF;
+  --color-brand-800: #761A8F;
+  --color-brand-900: #621A75;
+  --color-brand-950: #3F044E;
 
   /* Deep Charcoal Palette replacing Gray */
   --color-gray-25: #F9FAFB;
@@ -142,7 +142,7 @@
   --shadow-theme-xl: 0px 20px 24px -4px rgba(16, 24, 40, 0.08),
   0px 8px 8px -4px rgba(16, 24, 40, 0.03);
   --shadow-datepicker: -5px 0 0 #262d3c, 5px 0 0 #262d3c;
-  --shadow-focus-ring: 0px 0px 0px 4px rgba(197, 160, 101, 0.12); /* Adjusted to gold */
+  --shadow-focus-ring: 0px 0px 0px 4px rgba(194, 77, 239, 0.12); /* Adjusted to orchid-purple */
   --shadow-slider-navigation: 0px 1px 2px 0px rgba(16, 24, 40, 0.1),
   0px 1px 3px 0px rgba(16, 24, 40, 0.1);
   --shadow-tooltip: 0px 4px 6px -2px rgba(16, 24, 40, 0.05),
