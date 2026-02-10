@@ -49,6 +49,12 @@ type CitationItem = {
   content: string;
 };
 
+type AskExecutionOptions = {
+  skipOwnershipCheck?: boolean;
+  persistUserMessage?: boolean;
+  existingUserMessageId?: string;
+};
+
 @Injectable()
 export class ChatService {
   private readonly openai: OpenAI;
@@ -108,16 +114,17 @@ export class ChatService {
     return this.sessionRepo.save(session);
   }
 
-  async listSessions(userId: string, orgId: string) {
-    if (!userId || !orgId) {
-      throw new BadRequestException("User and org are required.");
+  async listSessions(orgId: string) {
+    if (!orgId) {
+      throw new BadRequestException("Org is required.");
     }
 
     return this.sessionRepo.find({
-      where: { userId, orgId },
+      where: { orgId },
       order: { updatedAt: "DESC" },
       select: {
         id: true,
+        userId: true,
         title: true,
         createdAt: true,
         updatedAt: true,
@@ -125,8 +132,8 @@ export class ChatService {
     });
   }
 
-  async listMessages(sessionId: string, userId: string, orgId: string) {
-    const session = await this.getSessionOrThrow(sessionId, userId, orgId);
+  async listMessages(sessionId: string, orgId: string) {
+    const session = await this.getSessionInOrgOrThrow(sessionId, orgId);
     return this.messageRepo.find({
       where: { sessionId: session.id },
       order: { createdAt: "ASC" },
@@ -140,10 +147,18 @@ export class ChatService {
     });
   }
 
-  async ask(sessionId: string, userId: string, orgId: string, dto: AskDto) {
+  async ask(
+    sessionId: string,
+    userId: string | null,
+    orgId: string,
+    dto: AskDto,
+    options?: AskExecutionOptions,
+  ) {
     const requestStartMs = Date.now();
     this.logger.info({ sessionId, orgId, userId }, "Chat request received");
-    const session = await this.getSessionOrThrow(sessionId, userId, orgId);
+    const session = options?.skipOwnershipCheck
+      ? await this.getSessionInOrgOrThrow(sessionId, orgId)
+      : await this.getSessionOrThrow(sessionId, userId, orgId);
     const question = dto?.question?.trim();
 
     if (!question) {
@@ -164,14 +179,17 @@ export class ChatService {
       "Question validated",
     );
 
-    const userMessage = await this.messageRepo.save(
-      this.messageRepo.create({
-        sessionId: session.id,
-        role: ChatRole.User,
-        content: question,
-        metadata: null,
-      }),
-    );
+    const shouldPersistUserMessage = options?.persistUserMessage ?? true;
+    const userMessage = shouldPersistUserMessage
+      ? await this.messageRepo.save(
+          this.messageRepo.create({
+            sessionId: session.id,
+            role: ChatRole.User,
+            content: question,
+            metadata: null,
+          }),
+        )
+      : null;
 
     const k = Math.min(Math.max(dto?.k ?? DEFAULT_TOP_K, 1), MAX_TOP_K);
     const filters = this.normalizeFilters(dto?.where);
@@ -203,7 +221,10 @@ export class ChatService {
       order: { createdAt: "ASC" },
     });
 
-    const history = buildConversationHistory(priorMessages.filter((m) => m.id !== userMessage.id));
+    const excludedMessageId = userMessage?.id ?? options?.existingUserMessageId;
+    const history = excludedMessageId
+      ? buildConversationHistory(priorMessages.filter((m) => m.id !== excludedMessageId))
+      : buildConversationHistory(priorMessages);
 
     this.logger.info(
       {
@@ -215,7 +236,9 @@ export class ChatService {
       "Conversation history prepared",
     );
 
-    const timeZone = await this.resolveUserTimeZone(userId, orgId);
+    const timeZone = userId
+      ? await this.resolveUserTimeZone(userId, orgId)
+      : await this.resolveOrgTimeZone(orgId);
     const dateContext = this.buildDateContext(timeZone);
     const dateBlock = `## Current date\nToday is ${dateContext.dateIso} (${dateContext.dayName}).`;
 
@@ -404,7 +427,20 @@ export class ChatService {
     };
   }
 
-  private async getSessionOrThrow(sessionId: string, userId: string, orgId: string) {
+  private async getSessionInOrgOrThrow(sessionId: string, orgId: string) {
+    const session = await this.sessionRepo.findOne({
+      where: { id: sessionId, orgId },
+    });
+    if (!session) {
+      throw new NotFoundException("Chat session not found.");
+    }
+    return session;
+  }
+
+  private async getSessionOrThrow(sessionId: string, userId: string | null, orgId: string) {
+    if (!userId) {
+      throw new NotFoundException("Chat session not found.");
+    }
     const session = await this.sessionRepo.findOne({
       where: { id: sessionId, userId, orgId },
     });
@@ -616,6 +652,18 @@ export class ChatService {
       return orgTimeZone;
     }
 
+    return this.defaultTimeZone;
+  }
+
+  private async resolveOrgTimeZone(orgId: string): Promise<string> {
+    const org = await this.orgRepo.findOne({
+      where: { id: orgId },
+      select: ["timeZone"],
+    });
+    const orgTimeZone = org?.timeZone?.trim();
+    if (orgTimeZone && this.isValidTimeZone(orgTimeZone)) {
+      return orgTimeZone;
+    }
     return this.defaultTimeZone;
   }
 

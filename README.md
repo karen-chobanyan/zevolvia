@@ -454,7 +454,7 @@ Notes:
 - Twilio sends `application/x-www-form-urlencoded` parameters and expects a TwiML response.
 - Signature validation uses `X-Twilio-Signature` and the full webhook URL.
 - Org matching is based on `orgs.phone` (recommended to store the Twilio number in E.164).
-- Inbound SMS will auto-create a client record for unknown phone numbers and store the message in `sms_messages`.
+- Inbound SMS auto-creates a client record for unknown phone numbers, stores the payload in `sms_messages`, and appends a `USER` message to an SMS-scoped chat session in `chat_messages`.
 
 Setup checklist:
 

@@ -21,5 +21,6 @@ import { Org } from "../identity/entities/org.entity";
   ],
   controllers: [ChatController],
   providers: [ChatService, ChatToolExecutor],
+  exports: [ChatService],
 })
 export class ChatModule {}

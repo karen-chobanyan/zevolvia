@@ -36,7 +36,7 @@ export class ChatController {
     if (!req.user?.orgId) {
       throw new BadRequestException("Missing org context");
     }
-    return this.chatService.listSessions(req.user.sub, req.user.orgId);
+    return this.chatService.listSessions(req.user.orgId);
   }
 
   @Get("sessions/:id/messages")
@@ -45,7 +45,7 @@ export class ChatController {
     if (!req.user?.orgId) {
       throw new BadRequestException("Missing org context");
     }
-    return this.chatService.listMessages(id, req.user.sub, req.user.orgId);
+    return this.chatService.listMessages(id, req.user.orgId);
   }
 
   @Post("sessions/:id/ask")
