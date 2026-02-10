@@ -42,6 +42,15 @@ export class SmsMessage extends BaseModel {
   @Column({ name: "sms_status", type: "text", nullable: true })
   smsStatus!: string | null;
 
+  @Column({ type: "text", default: "inbound" })
+  direction!: "inbound" | "outbound";
+
+  @Column({ name: "response_to_message_sid", type: "text", nullable: true })
+  responseToMessageSid!: string | null;
+
+  @Column({ name: "error_message", type: "text", nullable: true })
+  errorMessage!: string | null;
+
   @Column({ name: "num_media", type: "integer", default: 0 })
   numMedia!: number;
 
