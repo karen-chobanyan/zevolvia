@@ -340,9 +340,13 @@ STRIPE_CANCEL_URL=
 STRIPE_PORTAL_RETURN_URL=
 
 # Twilio (Inbound SMS)
+TWILIO_ACCOUNT_SID=your-twilio-account-sid
 TWILIO_AUTH_TOKEN=your-twilio-auth-token
+# Optional: outbound replies via Messaging Service
+TWILIO_MESSAGING_SERVICE_SID=
 # Optional: set when behind a proxy / ngrok
 TWILIO_WEBHOOK_URL=https://your-public-url/api/sms/twilio
+TWILIO_STATUS_CALLBACK_URL=https://your-public-url/api/sms/twilio/status
 TWILIO_VALIDATE_SIGNATURE=true
 
 # Phone normalization
@@ -445,16 +449,19 @@ Update payloads:
 
 ### SMS (Twilio)
 
-| Method | Endpoint          | Description                        |
-| ------ | ----------------- | ---------------------------------- |
-| `POST` | `/api/sms/twilio` | Twilio inbound SMS webhook (TwiML) |
+| Method | Endpoint                 | Description                         |
+| ------ | ------------------------ | ----------------------------------- |
+| `POST` | `/api/sms/twilio`        | Twilio inbound SMS webhook (TwiML)  |
+| `POST` | `/api/sms/twilio/status` | Twilio SMS delivery status callback |
 
 Notes:
 
 - Twilio sends `application/x-www-form-urlencoded` parameters and expects a TwiML response.
 - Signature validation uses `X-Twilio-Signature` and the full webhook URL.
 - Org matching is based on `orgs.phone` (recommended to store the Twilio number in E.164).
-- Inbound SMS auto-creates a client record for unknown phone numbers, stores the payload in `sms_messages`, and appends a `USER` message to an SMS-scoped chat session in `chat_messages`.
+- Inbound SMS auto-creates a client record for unknown phone numbers, stores the payload in `sms_messages`, appends a `USER` message to an SMS-scoped chat session in `chat_messages`, generates an AI reply, and sends it via Twilio API.
+- Outbound reply records are also stored in `sms_messages` with `direction = 'outbound'`.
+- Twilio delivery updates are applied through `/api/sms/twilio/status`.
 
 Setup checklist:
 

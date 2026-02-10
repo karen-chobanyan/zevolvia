@@ -49,7 +49,7 @@ export default function RootLayout({
             <SidebarProvider>{children}</SidebarProvider>
           </ThemeProvider>
         </MantineProvider>
-        {/* <GoogleAnalytics gaId="G-CK419QBRWM" /> */}
+        {/* <GoogleAnalytics gaId="G-YQSQ0XELK7" /> */}
       </body>
     </html>
   );

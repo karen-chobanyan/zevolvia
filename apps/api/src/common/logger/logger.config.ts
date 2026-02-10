@@ -1,10 +1,10 @@
 import { Params } from "nestjs-pino";
-import { Request, Response } from "express";
+import type { IncomingMessage, ServerResponse } from "http";
 import { v4 as uuidv4 } from "uuid";
 
 const REQUEST_ID_HEADER = "x-request-id";
 
-export interface RequestWithContext extends Request {
+interface ReqWithId extends IncomingMessage {
   id?: string;
   user?: {
     userId: string;
@@ -20,22 +20,26 @@ export const loggerConfig = (): Params => {
     pinoHttp: {
       level: process.env.LOG_LEVEL || (isProduction ? "info" : "debug"),
 
-      genReqId: (req: RequestWithContext) => {
-        const existingId = req.headers[REQUEST_ID_HEADER];
+      genReqId: (req: IncomingMessage) => {
+        const r = req as ReqWithId;
+        const existingId = r.headers[REQUEST_ID_HEADER];
         const requestId = (existingId as string) || uuidv4();
-        req.id = requestId;
+        r.id = requestId;
         return requestId;
       },
 
-      customProps: (req: RequestWithContext) => ({
-        requestId: req.id,
-        ...(req.user && {
-          userId: req.user.userId,
-          orgId: req.user.orgId,
-        }),
-      }),
+      customProps: (req: IncomingMessage) => {
+        const r = req as ReqWithId;
+        return {
+          requestId: r.id,
+          ...(r.user && {
+            userId: r.user.userId,
+            orgId: r.user.orgId,
+          }),
+        };
+      },
 
-      customLogLevel: (_req: Request, res: Response, err?: Error) => {
+      customLogLevel: (_req: IncomingMessage, res: ServerResponse, err?: Error) => {
         if (res.statusCode >= 500 || err) {
           return "error";
         }
@@ -45,11 +49,11 @@ export const loggerConfig = (): Params => {
         return "info";
       },
 
-      customSuccessMessage: (req: RequestWithContext, res: Response) => {
+      customSuccessMessage: (req: IncomingMessage, res: ServerResponse) => {
         return `${req.method} ${req.url} completed with ${res.statusCode}`;
       },
 
-      customErrorMessage: (req: RequestWithContext, res: Response) => {
+      customErrorMessage: (req: IncomingMessage, res: ServerResponse) => {
         return `${req.method} ${req.url} failed with ${res.statusCode}`;
       },
 
@@ -61,21 +65,22 @@ export const loggerConfig = (): Params => {
       },
 
       serializers: {
-        req: (req: RequestWithContext) => ({
-          id: req.id,
-          method: req.method,
-          url: req.url,
-          query: req.query,
-          params: req.params,
-          headers: {
-            host: req.headers.host,
-            "user-agent": req.headers["user-agent"],
-            "content-type": req.headers["content-type"],
-            "content-length": req.headers["content-length"],
-            [REQUEST_ID_HEADER]: req.headers[REQUEST_ID_HEADER],
-          },
-        }),
-        res: (res: Response) => ({
+        req: (req: IncomingMessage) => {
+          const r = req as ReqWithId;
+          return {
+            id: r.id,
+            method: r.method,
+            url: r.url,
+            headers: {
+              host: r.headers.host,
+              "user-agent": r.headers["user-agent"],
+              "content-type": r.headers["content-type"],
+              "content-length": r.headers["content-length"],
+              [REQUEST_ID_HEADER]: r.headers[REQUEST_ID_HEADER],
+            },
+          };
+        },
+        res: (res: ServerResponse) => ({
           statusCode: res.statusCode,
         }),
         err: (err: Error) => ({
@@ -115,7 +120,7 @@ export const loggerConfig = (): Params => {
           },
 
       autoLogging: {
-        ignore: (req: Request) => {
+        ignore: (req: IncomingMessage) => {
           const ignorePaths = ["/api/health", "/api/metrics", "/favicon.ico"];
           return ignorePaths.some((path) => req.url?.startsWith(path));
         },

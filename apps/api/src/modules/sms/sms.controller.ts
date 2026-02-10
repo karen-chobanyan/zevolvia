@@ -13,4 +13,12 @@ export class SmsController {
     await this.smsService.handleIncomingTwilio(body, req);
     return "<Response></Response>";
   }
+
+  @Post("twilio/status")
+  @HttpCode(200)
+  @Header("Content-Type", "text/plain")
+  async handleTwilioStatusWebhook(@Body() body: Record<string, unknown>, @Req() req: Request) {
+    await this.smsService.handleTwilioStatusCallback(body, req);
+    return "ok";
+  }
 }
