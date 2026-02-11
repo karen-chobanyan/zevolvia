@@ -1,5 +1,6 @@
-import { Injectable, OnModuleInit, Logger } from "@nestjs/common";
+import { Injectable, OnModuleInit } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import * as Minio from "minio";
 import * as crypto from "crypto";
 import { Readable } from "stream";
@@ -12,11 +13,14 @@ export interface UploadResult {
 
 @Injectable()
 export class MinioService implements OnModuleInit {
-  private readonly logger = new Logger(MinioService.name);
   private client: Minio.Client;
   private bucket: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    @InjectPinoLogger(MinioService.name)
+    private readonly logger: PinoLogger,
+    private readonly configService: ConfigService,
+  ) {
     this.client = new Minio.Client({
       endPoint: this.configService.get<string>("MINIO_ENDPOINT", "localhost"),
       port: parseInt(this.configService.get<string>("MINIO_PORT", "9000"), 10),
@@ -32,10 +36,10 @@ export class MinioService implements OnModuleInit {
       const exists = await this.client.bucketExists(this.bucket);
       if (!exists) {
         await this.client.makeBucket(this.bucket);
-        this.logger.log(`Created bucket: ${this.bucket}`);
+        this.logger.info({ bucket: this.bucket }, "Created bucket");
       }
     } catch (error) {
-      this.logger.error(`Failed to initialize MinIO bucket: ${error}`);
+      this.logger.error({ err: error, bucket: this.bucket }, "Failed to initialize MinIO bucket");
       throw error;
     }
   }

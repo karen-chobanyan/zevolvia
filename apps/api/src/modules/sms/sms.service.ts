@@ -1,8 +1,9 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from "@nestjs/common";
+import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
 import type { Request } from "express";
 import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import twilio from "twilio";
 import { DataSource, EntityManager, Repository } from "typeorm";
 import { ChatRole } from "../../common/enums";
@@ -21,9 +22,9 @@ type TwilioWebhookEnvOverride = "TWILIO_WEBHOOK_URL" | "TWILIO_STATUS_CALLBACK_U
 
 @Injectable()
 export class SmsService {
-  private readonly logger = new Logger(SmsService.name);
-
   constructor(
+    @InjectPinoLogger(SmsService.name)
+    private readonly logger: PinoLogger,
     @InjectRepository(Org)
     private readonly orgRepo: Repository<Org>,
     @InjectRepository(SmsMessage)

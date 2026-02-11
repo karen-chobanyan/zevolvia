@@ -1,6 +1,7 @@
-import { BadRequestException, Injectable, Logger, NotFoundException } from "@nestjs/common";
+import { BadRequestException, Injectable, NotFoundException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectRepository } from "@nestjs/typeorm";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import Stripe from "stripe";
 import { Repository } from "typeorm";
 import { SubscriptionStatus, MembershipStatus } from "../../common/enums";
@@ -14,9 +15,10 @@ type PlanKey = "monthly" | "yearly";
 @Injectable()
 export class BillingService {
   private readonly stripe: Stripe;
-  private readonly logger = new Logger(BillingService.name);
 
   constructor(
+    @InjectPinoLogger(BillingService.name)
+    private readonly logger: PinoLogger,
     @InjectRepository(BillingCustomer)
     private readonly billingCustomerRepo: Repository<BillingCustomer>,
     @InjectRepository(BillingSubscription)
@@ -467,7 +469,7 @@ export class BillingService {
         }
       }
 
-      this.logger.log(`Checkout completed for org ${orgId}`);
+      this.logger.info({ orgId }, "Checkout completed");
       return { received: true };
     }
 
@@ -499,7 +501,7 @@ export class BillingService {
         }),
       );
       await this.upsertSubscriptionFromStripe(orgId, customerId, subscription);
-      this.logger.log(`Invoice paid for org ${orgId}, subscription ${subscriptionId}`);
+      this.logger.info({ orgId, subscriptionId }, "Invoice paid");
       return { received: true };
     }
 

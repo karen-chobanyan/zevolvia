@@ -1,5 +1,6 @@
-import { Injectable, Logger } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
 import * as nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 
@@ -12,14 +13,17 @@ export interface SendEmailOptions {
 
 @Injectable()
 export class EmailService {
-  private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
   private readonly fromAddress: string;
   private readonly appUrl: string;
 
-  constructor(private readonly configService: ConfigService) {
+  constructor(
+    @InjectPinoLogger(EmailService.name)
+    private readonly logger: PinoLogger,
+    private readonly configService: ConfigService,
+  ) {
     this.fromAddress = this.configService.get<string>("SMTP_FROM") || "noreply@zevolvia.com";
-    this.appUrl = this.configService.get<string>("APP_URL") || "http://localhost:3000";
+    this.appUrl = this.configService.get<string>("APP_URL") || "";
 
     const smtpHost = this.configService.get<string>("SMTP_HOST");
     const smtpPort = this.configService.get<number>("SMTP_PORT");
@@ -40,7 +44,7 @@ export class EmailService {
             : undefined,
       });
 
-      this.logger.log(`Email service initialized with SMTP host: ${smtpHost}`);
+      this.logger.info({ smtpHost }, "Email service initialized");
     } else {
       this.logger.warn("Email service not configured - emails will be logged only");
     }
@@ -50,7 +54,7 @@ export class EmailService {
     const { to, subject, html, text } = options;
 
     if (!this.transporter) {
-      this.logger.log(`[EMAIL NOT SENT - No SMTP configured] To: ${to}, Subject: ${subject}`);
+      this.logger.info({ to, subject }, "Email not sent because SMTP is not configured");
       this.logger.debug(`Email content: ${text || html}`);
       return true;
     }
@@ -64,10 +68,10 @@ export class EmailService {
         text: text || html.replace(/<[^>]*>/g, ""),
       });
 
-      this.logger.log(`Email sent successfully to ${to}`);
+      this.logger.info({ to }, "Email sent successfully");
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send email to ${to}:`, error);
+      this.logger.error({ err: error, to }, "Failed to send email");
       return false;
     }
   }
