@@ -90,12 +90,7 @@ export class SmsService {
     return Array.from(candidates);
   }
 
-  private buildWebhookUrl(req: Request, overrideKey?: TwilioWebhookEnvOverride) {
-    const override = overrideKey ? this.config.get<string>(overrideKey) : undefined;
-    if (override) {
-      return override;
-    }
-
+  private buildWebhookUrl(req: Request) {
     const baseOverride =
       this.config.get<string>("PUBLIC_API_URL") || this.config.get<string>("API_URL");
     const path = req.originalUrl || req.url || "";
@@ -112,6 +107,59 @@ export class SmsService {
       "https";
     const base = host ? `${proto}://${host}` : "";
     return `${base}${path.startsWith("/") ? path : `/${path}`}`;
+  }
+
+  private withDefaultPortVariants(rawUrl: string) {
+    const input = rawUrl.trim();
+    if (!input) {
+      return [];
+    }
+
+    const variants = new Set<string>([input]);
+    try {
+      const parsed = new URL(input);
+      const isDefaultPort =
+        (parsed.protocol === "https:" && parsed.port === "443") ||
+        (parsed.protocol === "http:" && parsed.port === "80");
+
+      if (isDefaultPort) {
+        const withoutPort = new URL(parsed.toString());
+        withoutPort.port = "";
+        variants.add(withoutPort.toString());
+      } else if (!parsed.port) {
+        const withPort = new URL(parsed.toString());
+        if (parsed.protocol === "https:") {
+          withPort.port = "443";
+          variants.add(withPort.toString());
+        } else if (parsed.protocol === "http:") {
+          withPort.port = "80";
+          variants.add(withPort.toString());
+        }
+      }
+    } catch {
+      return Array.from(variants);
+    }
+
+    return Array.from(variants);
+  }
+
+  private buildTwilioValidationUrls(req: Request, overrideKey?: TwilioWebhookEnvOverride) {
+    const urls = new Set<string>();
+    const configuredOverride = overrideKey ? this.config.get<string>(overrideKey)?.trim() : "";
+    if (configuredOverride) {
+      for (const candidate of this.withDefaultPortVariants(configuredOverride)) {
+        urls.add(candidate);
+      }
+    }
+
+    for (const candidate of this.withDefaultPortVariants(this.buildWebhookUrl(req))) {
+      urls.add(candidate);
+    }
+
+    return {
+      configuredOverride: configuredOverride || null,
+      urls: Array.from(urls),
+    };
   }
 
   private buildStatusCallbackUrl() {
@@ -147,17 +195,41 @@ export class SmsService {
     const signatureHeader = req.headers[TWILIO_SIGNATURE_HEADER];
     const signature = Array.isArray(signatureHeader) ? signatureHeader[0] : signatureHeader;
     if (!signature) {
+      this.logger.warn(
+        {
+          overrideKey: overrideKey || null,
+          path: req.originalUrl || req.url,
+          host: req.headers.host,
+          forwardedHost: req.headers["x-forwarded-host"],
+          forwardedProto: req.headers["x-forwarded-proto"],
+          userAgent: req.headers["user-agent"],
+        },
+        "Twilio webhook signature header is missing",
+      );
       throw new ForbiddenException("Missing Twilio signature");
     }
 
-    const url = this.buildWebhookUrl(req, overrideKey);
-    const isValid = twilio.validateRequest(
-      authToken,
-      signature,
-      url,
-      payload as Record<string, unknown>,
+    const { configuredOverride, urls } = this.buildTwilioValidationUrls(req, overrideKey);
+    const isValid = urls.some((url) =>
+      twilio.validateRequest(authToken, signature, url, payload as Record<string, unknown>),
     );
     if (!isValid) {
+      this.logger.warn(
+        {
+          overrideKey: overrideKey || null,
+          configuredOverride,
+          validationUrls: urls,
+          path: req.originalUrl || req.url,
+          host: req.headers.host,
+          forwardedHost: req.headers["x-forwarded-host"],
+          forwardedProto: req.headers["x-forwarded-proto"],
+          accountSid:
+            typeof payload.AccountSid === "string"
+              ? payload.AccountSid
+              : String(payload.AccountSid || ""),
+        },
+        "Twilio webhook signature validation failed",
+      );
       throw new ForbiddenException("Invalid Twilio signature");
     }
   }

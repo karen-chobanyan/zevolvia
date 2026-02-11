@@ -221,6 +221,7 @@ services:
       GF_AUTH_ANONYMOUS_ENABLED: "false"
       GF_USERS_ALLOW_SIGN_UP: "false"
       GF_UNIFIED_ALERTING_ENABLED: "true"
+      GF_LIVE_ALLOWED_ORIGINS: ${GF_LIVE_ALLOWED_ORIGINS:-}
       SLACK_WEBHOOK_URL: ${SLACK_WEBHOOK_URL:-http://localhost:9/placeholder}
       ALERT_EMAIL_ADDRESSES: ${ALERT_EMAIL_ADDRESSES:-noop@localhost}
       GF_SMTP_ENABLED: ${GF_SMTP_ENABLED:-false}
