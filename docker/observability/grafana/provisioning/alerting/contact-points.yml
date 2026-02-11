@@ -5,12 +5,12 @@ contactPoints:
     name: slack-ops
     receivers:
       - uid: slack_ops_receiver
-        type: slack
+        type: webhook
         settings:
-          url: $SLACK_WEBHOOK_URL
-          recipient: "#ops-alerts"
+          url: ${SLACK_WEBHOOK_URL:-http://localhost:9/placeholder}
+          httpMethod: POST
           title: "[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}"
-          text: |
+          message: |
             **{{ .CommonLabels.alertname }}**
             Severity: {{ .CommonLabels.severity }}
             Service: {{ .CommonLabels.service }}
@@ -26,6 +26,6 @@ contactPoints:
       - uid: email_ops_receiver
         type: email
         settings:
-          addresses: $ALERT_EMAIL_ADDRESSES
+          addresses: ${ALERT_EMAIL_ADDRESSES:-noop@localhost}
           singleEmail: true
         disableResolveMessage: false
