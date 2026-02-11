@@ -11,7 +11,7 @@ export class HomePage {
     await expect(
       this.page.getByRole("heading", {
         level: 1,
-        name: "Your clients text. Evolvia books. Chairs stay full.",
+        name: "Your clients text. Zevolvia books. Chairs stay full.",
       }),
     ).toBeVisible();
   }
@@ -32,6 +32,6 @@ export class HomePage {
 
   async expectMainLayout() {
     await expect(this.page.getByRole("navigation")).toBeVisible();
-    await expect(this.page.getByRole("img", { name: "Evolvia Logo" }).first()).toBeVisible();
+    await expect(this.page.getByRole("img", { name: "Zevolvia Logo" }).first()).toBeVisible();
   }
 }

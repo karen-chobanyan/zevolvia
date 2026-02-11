@@ -1,6 +1,6 @@
 Context
 
-The Evolvia chat assistant is currently RAG-only — it can answer questions from uploaded documents but
+The Zevolvia chat assistant is currently RAG-only — it can answer questions from uploaded documents but
 cannot access live booking data. Clients need to book appointments and check availability through chat.
 We integrate OpenAI function calling (tool use) so the assistant can query real services, staff,
 availability, and create bookings — all org-scoped.

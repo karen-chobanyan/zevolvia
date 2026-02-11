@@ -44,7 +44,7 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo/logo.svg"
-              alt="Evolvia Logo"
+              alt="Zevolvia Logo"
               width={160}
               height={40}
               className="h-8 w-auto sm:h-10"

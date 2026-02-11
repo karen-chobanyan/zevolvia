@@ -87,7 +87,7 @@ const AppHeader: React.FC = () => {
           </button>
 
           <Link href="/dashboard" className="xl:hidden">
-            <Image width={154} height={32} src="/images/logo/logo.svg" alt="Evolvia Logo" />
+            <Image width={154} height={32} src="/images/logo/logo.svg" alt="Zevolvia Logo" />
           </Link>
 
           <button

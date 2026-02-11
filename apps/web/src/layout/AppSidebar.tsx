@@ -441,10 +441,10 @@ const AppSidebar: React.FC = () => {
         <Link href="/dashboard">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              <Image src="/images/logo/logo.svg" alt="Evolvia Logo" width={220} height={60} />
+              <Image src="/images/logo/logo.svg" alt="Zevolvia Logo" width={220} height={60} />
             </>
           ) : (
-            <Image src="/images/logo/logo-icon.svg" alt="Evolvia Logo" width={32} height={32} />
+            <Image src="/images/logo/logo-icon.svg" alt="Zevolvia Logo" width={32} height={32} />
           )}
         </Link>
       </div>

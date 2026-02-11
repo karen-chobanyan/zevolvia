@@ -48,7 +48,7 @@ export default function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm text-gray-500">Welcome back</p>
-            <h1 className="text-3xl font-semibold text-gray-900">Evolvia Dashboard</h1>
+            <h1 className="text-3xl font-semibold text-gray-900">Zevolvia Dashboard</h1>
             {userEmail && <p className="mt-1 text-sm text-gray-500">{userEmail}</p>}
           </div>
           <div className="flex items-center gap-3">

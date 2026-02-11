@@ -9,7 +9,7 @@ export class DashboardPage {
 
   async expectLoaded() {
     await expect(
-      this.page.getByRole("heading", { level: 1, name: "Evolvia Dashboard" }),
+      this.page.getByRole("heading", { level: 1, name: "Zevolvia Dashboard" }),
     ).toBeVisible();
   }
 

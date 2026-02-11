@@ -17,7 +17,7 @@ export class SignupPage {
 
   async expectLoaded() {
     await expect(
-      this.page.getByRole("heading", { level: 1, name: "Create your Evolvia account" }),
+      this.page.getByRole("heading", { level: 1, name: "Create your Zevolvia account" }),
     ).toBeVisible();
   }
 

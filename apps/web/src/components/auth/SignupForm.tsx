@@ -60,7 +60,7 @@ export default function SignupForm() {
   ) : (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Create your Evolvia account</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Create your Zevolvia account</h1>
         <p className="mt-2 text-sm text-gray-500">
           Start organizing appointments, client insights, and AI workflows in minutes.
         </p>

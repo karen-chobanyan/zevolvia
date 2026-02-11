@@ -10,14 +10,14 @@ test.describe("Accessibility smoke", () => {
     const main = page.getByRole("main");
     const heroHeading = page.getByRole("heading", {
       level: 1,
-      name: "Your clients text. Evolvia books. Chairs stay full.",
+      name: "Your clients text. Zevolvia books. Chairs stay full.",
     });
 
     await expect(navigation).toBeVisible();
     await expect(page.getByRole("main")).toBeVisible();
     await expect(heroHeading).toBeVisible();
     await expect(heroHeading).toHaveAccessibleName(
-      "Your clients text. Evolvia books. Chairs stay full.",
+      "Your clients text. Zevolvia books. Chairs stay full.",
     );
     await expect(main).toContainText("Book a 10-minute demo");
   });
@@ -43,11 +43,11 @@ test.describe("Accessibility smoke", () => {
     await page.goto("/dashboard/chat");
 
     const chatHeading = page.getByRole("heading", { level: 2, name: "AI Chat" });
-    const chatInput = page.getByPlaceholder("Ask Evolvia...");
+    const chatInput = page.getByPlaceholder("Ask Zevolvia...");
 
     await expect(page.getByRole("heading", { level: 2, name: "AI Chat" })).toBeVisible();
     await expect(chatHeading).toHaveAccessibleName("AI Chat");
     await expect(chatInput).toBeVisible();
-    await expect(chatInput).toHaveAccessibleName("Ask Evolvia...");
+    await expect(chatInput).toHaveAccessibleName("Ask Zevolvia...");
   });
 });

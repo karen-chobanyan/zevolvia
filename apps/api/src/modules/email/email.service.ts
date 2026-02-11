@@ -147,7 +147,7 @@ This invitation will expire in 7 days. If you didn't expect this invitation, you
         </head>
         <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
           <div style="background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); padding: 30px; border-radius: 10px 10px 0 0;">
-            <h1 style="color: white; margin: 0; font-size: 24px;">Reset your Evolvia password</h1>
+            <h1 style="color: white; margin: 0; font-size: 24px;">Reset your Zevolvia password</h1>
           </div>
           <div style="background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; border: 1px solid #e5e7eb; border-top: none;">
             <p style="font-size: 16px; margin-top: 0;">We received a request to reset your password.</p>
@@ -164,7 +164,7 @@ This invitation will expire in 7 days. If you didn't expect this invitation, you
     `;
 
     const text = `
-Reset your Evolvia password
+Reset your Zevolvia password
 
 We received a request to reset your password.
 
@@ -176,7 +176,7 @@ If you didn't request this, you can ignore this email.
 
     return this.sendEmail({
       to: email,
-      subject: "Reset your Evolvia password",
+      subject: "Reset your Zevolvia password",
       html,
       text,
     });

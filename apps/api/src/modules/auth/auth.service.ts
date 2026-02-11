@@ -120,7 +120,7 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(input.password, 12);
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
-    const orgName = input.orgName?.trim() || name || "Evolvia Workspace";
+    const orgName = input.orgName?.trim() || name || "Zevolvia Workspace";
 
     this.logger.debug({ email, orgName }, "Creating user and organization");
 

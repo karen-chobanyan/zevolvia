@@ -42,14 +42,14 @@ export function LandingFooter() {
             <Link href="/" className="flex items-center">
               <Image
                 src="/images/logo/logo.svg"
-                alt="Evolvia Logo"
+                alt="Zevolvia Logo"
                 width={140}
                 height={35}
                 className="h-8 w-auto"
               />
             </Link>
             <p className="mt-4 text-sm text-gray-600">
-              AI-powered SMS booking for salons. Clients text, Evolvia books, chairs stay full.
+              AI-powered SMS booking for salons. Clients text, Zevolvia books, chairs stay full.
             </p>
 
             {/* Social Links */}
@@ -140,7 +140,7 @@ export function LandingFooter() {
         <div className="border-t border-gray-200 py-6">
           <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
             <p className="text-sm text-gray-500">
-              &copy; {new Date().getFullYear()} Evolvia. All rights reserved.
+              &copy; {new Date().getFullYear()} Zevolvia. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-gray-500">
               <span className="flex items-center gap-1">

@@ -2,7 +2,7 @@ import { Bell, Calendar, Clock, MessageSquare, Plug, Sparkles } from "lucide-rea
 
 export const heroContent = {
   eyebrow: "Every missed text is a missed booking",
-  headline: "Your clients text. Evolvia books. Chairs stay full.",
+  headline: "Your clients text. Zevolvia books. Chairs stay full.",
   subheadline:
     "Clients text your salon number like they'd text a friend. Real calendar, real availability, instant confirmation — even at 11 PM.",
   ctaText: "Book a 10-minute demo",
@@ -91,7 +91,7 @@ export const howItWorksSteps = [
   },
   {
     icon: "Bell",
-    title: "Evolvia books and confirms",
+    title: "Zevolvia books and confirms",
     description: "Bookings are confirmed instantly and your team is notified.",
     bullets: [
       "Automatic confirmations",
@@ -246,12 +246,12 @@ export const faqs = [
   {
     question: "Do I have to switch from my current booking software?",
     answer:
-      "No. Evolvia plugs into your existing system so you keep your calendar, stylists, and workflows.",
+      "No. Zevolvia plugs into your existing system so you keep your calendar, stylists, and workflows.",
   },
   {
     question: "What if my clients still prefer calling?",
     answer:
-      "They can. Evolvia does not replace your personal touch. It simply captures the texts and after-hours requests you cannot answer.",
+      "They can. Zevolvia does not replace your personal touch. It simply captures the texts and after-hours requests you cannot answer.",
   },
   {
     question: "How accurate is the booking AI?",
@@ -273,7 +273,7 @@ export const faqs = [
 export const footerContent = {
   headline: "Ready to capture bookings while you sleep?",
   subheadline:
-    "Book more appointments without adding staff. Evolvia works with the system you already use.",
+    "Book more appointments without adding staff. Zevolvia works with the system you already use.",
   ctaText: "Book a 10-minute demo",
   ctaSubtext: "No credit card required. Setup in 15 minutes.",
 };

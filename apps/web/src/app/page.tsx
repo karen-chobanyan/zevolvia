@@ -35,7 +35,7 @@ export default function HomePage() {
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo/logo.svg"
-              alt="Evolvia Logo"
+              alt="Zevolvia Logo"
               width={172}
               height={40}
               className="h-9 w-auto"
@@ -222,7 +222,8 @@ export default function HomePage() {
               From setup to booked in days, not weeks
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              Plug in, go live, and let Evolvia handle the conversations while you focus on clients.
+              Plug in, go live, and let Zevolvia handle the conversations while you focus on
+              clients.
             </p>
           </div>
 
@@ -270,7 +271,7 @@ export default function HomePage() {
               Keep your booking system. Make it smarter.
             </h2>
             <p className="mt-4 text-lg text-gray-700">
-              Evolvia connects to your existing calendar so you never have to migrate data or
+              Zevolvia connects to your existing calendar so you never have to migrate data or
               retrain staff. Clients just text your salon number and bookings appear where they
               always have.
             </p>
@@ -316,7 +317,7 @@ export default function HomePage() {
             <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
               <p className="text-sm font-semibold text-gray-900">No replacement anxiety</p>
               <p className="mt-2 text-sm text-gray-600">
-                Evolvia is an add-on, not a rip-and-replace system. Start today without changing
+                Zevolvia is an add-on, not a rip-and-replace system. Start today without changing
                 anything else.
               </p>
               <Link
@@ -373,7 +374,7 @@ export default function HomePage() {
               Built to complement, not replace
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              A quick look at how Evolvia stacks up against enterprise platforms, voice AI, and
+              A quick look at how Zevolvia stacks up against enterprise platforms, voice AI, and
               booking forms.
             </p>
           </div>
@@ -383,7 +384,7 @@ export default function HomePage() {
               <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
                 <tr>
                   <th className="px-5 py-4">Feature</th>
-                  <th className="bg-brand-50 px-5 py-4 text-brand-700">Evolvia</th>
+                  <th className="bg-brand-50 px-5 py-4 text-brand-700">Zevolvia</th>
                   <th className="px-5 py-4">Zenoti/Booker</th>
                   <th className="px-5 py-4">Voice AI</th>
                   <th className="px-5 py-4">Online Forms</th>
@@ -517,7 +518,7 @@ export default function HomePage() {
               Your questions, answered
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              Everything you need to know about Evolvia before you launch.
+              Everything you need to know about Zevolvia before you launch.
             </p>
           </div>
 
@@ -568,14 +569,14 @@ export default function HomePage() {
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo/logo.svg"
-              alt="Evolvia Logo"
+              alt="Zevolvia Logo"
               width={172}
               height={40}
               className="h-9 w-auto"
             />
           </Link>
           <p className="text-sm text-gray-500">
-            (c) {new Date().getFullYear()} Evolvia. All rights reserved.
+            (c) {new Date().getFullYear()} Zevolvia. All rights reserved.
           </p>
           <div className="flex items-center gap-4 text-sm text-gray-400">
             <Link href="/login" className="hover:text-white">

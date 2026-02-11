@@ -1,4 +1,4 @@
-# Evolvia
+# Zevolvia
 
 An AI-powered SaaS platform for beauty salons, featuring intelligent client follow-ups, document management with RAG (Retrieval-Augmented Generation), and multi-tenant organization management.
 
@@ -22,7 +22,7 @@ An AI-powered SaaS platform for beauty salons, featuring intelligent client foll
 
 ## Overview
 
-Evolvia is a full-stack monorepo application that helps beauty salons manage their operations with AI assistance. Key features include:
+Zevolvia is a full-stack monorepo application that helps beauty salons manage their operations with AI assistance. Key features include:
 
 - **AI-Powered Follow-ups**: Automated client communication suggestions
 - **Document Management**: Upload, organize, and search through documents
@@ -395,7 +395,7 @@ SEED_EMAIL=owner@zevolvia.ai
 SEED_PASSWORD=ChangeMe123!
 SEED_FIRST_NAME=Salon
 SEED_LAST_NAME=Owner
-SEED_ORG_NAME=Evolvia Studio
+SEED_ORG_NAME=Zevolvia Studio
 ```
 
 ### Web (`apps/web/.env`)

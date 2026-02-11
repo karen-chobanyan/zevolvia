@@ -71,7 +71,7 @@ export function PhoneMockup({ messages, className, animated = true }: PhoneMocku
                   <span className="text-sm font-bold text-white">EV</span>
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-gray-900">Evolvia Booking</div>
+                  <div className="text-sm font-semibold text-gray-900">Zevolvia Booking</div>
                   <div className="text-xs text-green-600 font-medium">Online</div>
                 </div>
               </div>

@@ -17,6 +17,6 @@ export function createE2EUser(prefix: string = "user"): E2EUserInput {
     lastName: `Tester${suffix}`,
     email: `${prefix}.${suffix}@zevolvia.test`,
     password: "Password123!",
-    orgName: `Evolvia E2E Org ${suffix}`,
+    orgName: `Zevolvia E2E Org ${suffix}`,
   };
 }
