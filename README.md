@@ -827,6 +827,7 @@ Important:
 - Set Grafana subpath settings in `.env.observability`:
   - `GF_SERVER_ROOT_URL=https://zevolvia.com/api/live`
   - `GF_SERVER_SERVE_FROM_SUB_PATH=true`
+  - `GF_LIVE_ALLOWED_ORIGINS=https://zevolvia.com https://www.zevolvia.com`
 
 Deploy example:
 
@@ -835,6 +836,8 @@ sudo cp docker/observability/nginx/zevolvia.com.conf /etc/nginx/sites-available/
 sudo ln -s /etc/nginx/sites-available/zevolvia.com /etc/nginx/sites-enabled/zevolvia.com
 sudo nginx -t && sudo systemctl reload nginx
 ```
+
+If Grafana UI shows `origin not allowed`, verify `GF_LIVE_ALLOWED_ORIGINS` includes the exact browser origin(s) and recreate Grafana.
 
 ### Query Examples (Grafana Explore -> Loki)
 

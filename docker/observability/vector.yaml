@@ -15,8 +15,18 @@ transforms:
     inputs:
       - docker_logs
     source: |
-      .compose_service = to_string(.label."com.docker.compose.service") ?? ""
+      .compose_service = to_string(.label."com.docker.compose.service") ?? to_string(.labels."com.docker.compose.service") ?? ""
       .compose_project = to_string(.label."com.docker.compose.project") ?? ""
+      .container_name = to_string(.container_name) ?? ""
+
+      # Fallback for environments where compose labels are not exposed as expected.
+      if .compose_service == "" {
+        if contains(.container_name, "api-prod") {
+          .compose_service = "api-prod"
+        } else if contains(.container_name, "api") {
+          .compose_service = "api"
+        }
+      }
 
       if .compose_service != "api" && .compose_service != "api-prod" {
         abort
