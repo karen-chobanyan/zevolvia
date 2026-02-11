@@ -806,11 +806,35 @@ make obs
 make prod-obs
 ```
 
+`make obs`/`make prod-obs` automatically load `.env.observability` when the file exists.
+
 ### Access
 
 - Grafana: `http://localhost:${GRAFANA_PORT:-3030}` (default `admin` / `admin`)
 - Loki HTTP API: `http://localhost:${LOKI_PORT:-3100}`
 - Vector API: `http://localhost:${VECTOR_API_PORT:-8686}`
+
+### Nginx Reverse Proxy (Grafana on `/api/live`)
+
+If you expose Grafana through your main domain, use the provided snippet:
+
+- `docker/observability/nginx/grafana-api-live.conf`
+- `docker/observability/nginx/zevolvia.com.conf` (full server config template)
+
+Important:
+
+- Place `location ^~ /api/live/` **before** generic `/api/` locations.
+- Set Grafana subpath settings in `.env.observability`:
+  - `GF_SERVER_ROOT_URL=https://zevolvia.com/api/live`
+  - `GF_SERVER_SERVE_FROM_SUB_PATH=true`
+
+Deploy example:
+
+```bash
+sudo cp docker/observability/nginx/zevolvia.com.conf /etc/nginx/sites-available/zevolvia.com
+sudo ln -s /etc/nginx/sites-available/zevolvia.com /etc/nginx/sites-enabled/zevolvia.com
+sudo nginx -t && sudo systemctl reload nginx
+```
 
 ### Query Examples (Grafana Explore -> Loki)
 
