@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import * as path from "path";
 import { DataSource, DataSourceOptions } from "typeorm";
 import * as dotenv from "dotenv";
 import { ConfigService } from "@nestjs/config";
@@ -13,6 +14,6 @@ export const AppDataSource = new DataSource({
   username: configService.getOrThrow("DB_USER"),
   password: configService.getOrThrow("DB_PASSWORD"),
   database: configService.getOrThrow("DB_NAME"),
-  entities: ["src/modules/**/entities/*.entity.ts"],
-  migrations: ["src/database/migrations/*.ts"],
+  entities: [path.join(__dirname, "../modules/**/entities/*.entity.{ts,js}")],
+  migrations: [path.join(__dirname, "./migrations/*.{ts,js}")],
 } as DataSourceOptions);
