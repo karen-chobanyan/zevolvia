@@ -20,5 +20,5 @@ build_and_push:
     - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
     - docker build -f docker/Dockerfile --target prod --build-arg APP=api -t "$CI_REGISTRY_IMAGE/api:latest" .
     - docker push "$CI_REGISTRY_IMAGE/api:latest"
-    - docker build -f docker/Dockerfile --target prod --build-arg APP=web -t "$CI_REGISTRY_IMAGE/web:latest" .
+    - docker build -f docker/Dockerfile --target prod --build-arg APP=web --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" -t "$CI_REGISTRY_IMAGE/web:latest" .
     - docker push "$CI_REGISTRY_IMAGE/web:latest"

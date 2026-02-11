@@ -22,6 +22,8 @@ COPY . .
 
 FROM deps AS build
 ARG APP
+ARG NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 COPY . .
 RUN if [ -n "$APP" ]; then pnpm --filter zevolvia-${APP} run build; else pnpm -r run build; fi
 
