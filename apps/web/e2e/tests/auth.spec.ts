@@ -31,7 +31,7 @@ test.describe("Authentication flows", () => {
     await loginPage.expectLoaded();
 
     await loginPage.expectSubmitDisabled();
-    await loginPage.fillCredentials("bad.user@evolvia.test", "wrong-password");
+    await loginPage.fillCredentials("bad.user@zevolvia.test", "wrong-password");
     await loginPage.submit();
     await loginPage.expectInvalidCredentialsError();
   });
@@ -44,7 +44,7 @@ test.describe("Authentication flows", () => {
 
     await loginPage.goto("/dashboard");
     await loginPage.expectLoaded();
-    await loginPage.fillCredentials("owner.e2e@evolvia.test", "Password123!");
+    await loginPage.fillCredentials("owner.e2e@zevolvia.test", "Password123!");
     await loginPage.submit();
 
     await waitForPathname(page, "/dashboard");

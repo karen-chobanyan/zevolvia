@@ -1,6 +1,6 @@
 type ApiOptions = RequestInit & { json?: unknown; _retry?: boolean };
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
 const AUTH_REFRESH_SKIP = new Set([
   "/auth/login",

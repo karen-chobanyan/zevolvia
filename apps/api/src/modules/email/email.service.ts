@@ -18,7 +18,7 @@ export class EmailService {
   private readonly appUrl: string;
 
   constructor(private readonly configService: ConfigService) {
-    this.fromAddress = this.configService.get<string>("SMTP_FROM") || "noreply@evolvia.com";
+    this.fromAddress = this.configService.get<string>("SMTP_FROM") || "noreply@zevolvia.com";
     this.appUrl = this.configService.get<string>("APP_URL") || "http://localhost:3000";
 
     const smtpHost = this.configService.get<string>("SMTP_HOST");

@@ -394,7 +394,7 @@ export default function HomePage() {
                   <tr key={row.feature} className="border-t border-gray-200">
                     <td className="px-5 py-4 font-medium text-gray-900">{row.feature}</td>
                     <td className="bg-brand-50 px-5 py-4 font-semibold text-brand-800">
-                      {row.evolvia}
+                      {row.zevolvia}
                     </td>
                     <td className="px-5 py-4 text-gray-600">{row.enterprise}</td>
                     <td className="px-5 py-4 text-gray-600">{row.voiceAi}</td>

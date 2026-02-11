@@ -13,7 +13,7 @@ export class LoginPage {
   }
 
   async fillCredentials(email: string, password: string) {
-    await this.page.getByPlaceholder("you@evolvia.com").fill(email);
+    await this.page.getByPlaceholder("you@zevolvia.com").fill(email);
     await this.page.getByPlaceholder("Enter your password").fill(password);
   }
 

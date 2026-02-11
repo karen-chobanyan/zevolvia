@@ -64,7 +64,7 @@ export default function LoginForm() {
           <Input
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@evolvia.com"
+            placeholder="you@zevolvia.com"
             className="!bg-white !text-gray-900 !border-gray-200 focus:!border-brand-500"
           />
         </div>

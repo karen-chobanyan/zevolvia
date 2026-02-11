@@ -391,7 +391,7 @@ CHUNK_SIZE=500
 CHUNK_OVERLAP=150
 
 # Seeding (optional)
-SEED_EMAIL=owner@evolvia.ai
+SEED_EMAIL=owner@zevolvia.ai
 SEED_PASSWORD=ChangeMe123!
 SEED_FIRST_NAME=Salon
 SEED_LAST_NAME=Owner

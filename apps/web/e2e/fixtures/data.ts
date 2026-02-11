@@ -2,7 +2,7 @@ export const E2E_ORG_ID = "org-e2e-001";
 
 export const E2E_USER = {
   sub: "user-e2e-001",
-  email: "owner.e2e@evolvia.test",
+  email: "owner.e2e@zevolvia.test",
   orgId: E2E_ORG_ID,
   roleId: "owner",
   permissions: ["dashboard:read", "chat:read", "chat:write"],
@@ -29,7 +29,7 @@ export function buildDashboardSummary(orgId: string = E2E_ORG_ID) {
       recentMembers: [
         {
           userId: "user-e2e-002",
-          email: "stylist.e2e@evolvia.test",
+          email: "stylist.e2e@zevolvia.test",
           role: "stylist",
           joinedAt: "2026-01-01T00:00:00.000Z",
         },

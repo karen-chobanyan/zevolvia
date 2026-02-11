@@ -1,4 +1,4 @@
-name: evolvia
+name: zevolvia
 
 x-node-build-dev: &node-build-dev
   context: .
@@ -117,7 +117,7 @@ services:
   api-prod:
     profiles:
       - prod
-    image: ${EVOLVIA_API_IMAGE:-evolvia-api:local}
+    image: ${EVOLVIA_API_IMAGE:-zevolvia-api:local}
     build:
       <<: *node-build-prod
       args:
@@ -165,7 +165,7 @@ services:
   web-prod:
     profiles:
       - prod
-    image: ${EVOLVIA_WEB_IMAGE:-evolvia-web:local}
+    image: ${EVOLVIA_WEB_IMAGE:-zevolvia-web:local}
     build:
       <<: *node-build-prod
       args:

@@ -406,7 +406,7 @@ export class AuthService {
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)+/g, "")
-        .slice(0, 50) || "evolvia";
+        .slice(0, 50) || "zevolvia";
 
     let slug = base;
     let attempt = 1;

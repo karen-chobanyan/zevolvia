@@ -9,7 +9,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <div className="w-full max-w-md">
             <Link href="/" className="inline-flex items-center gap-3 text-gray-900">
               <Image
-                src="/images/logo/logo-bold.svg"
+                src="/images/logo/logo.svg"
                 alt="Evolvia logo"
                 width={120}
                 height={28}
