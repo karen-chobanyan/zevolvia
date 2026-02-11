@@ -167,13 +167,17 @@ export class ChatToolExecutor {
     const parsed = new Date(`${resolvedDate}T00:00:00`);
     const dayName = Number.isFinite(parsed.getTime()) ? (DAY_NAMES[parsed.getDay()] ?? null) : null;
 
+    const tz = context.timeZone ?? "UTC";
+
     return {
       date: resolvedDate,
       dayName,
-      timeZone: context.timeZone ?? "UTC",
+      timeZone: tz,
       slots: slots.map((s) => ({
         start: s.startTime,
         end: s.endTime,
+        startLocal: this.formatTimeInTz(s.startTime, tz),
+        endLocal: this.formatTimeInTz(s.endTime, tz),
       })),
     };
   }
@@ -238,6 +242,16 @@ export class ChatToolExecutor {
     const day = parts.find((p) => p.type === "day")?.value ?? "01";
 
     return `${year}-${month}-${day}`;
+  }
+
+  private formatTimeInTz(isoString: string, timeZone: string): string {
+    const date = new Date(isoString);
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    }).format(date);
   }
 
   private addDays(date: Date, days: number): Date {
