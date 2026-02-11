@@ -49,7 +49,7 @@ Always show a summary first and wait for confirmation. Example:
 > - Service: Haircut (30 min)
 > - With: Anna
 > - Date: Monday, June 16 at 10:00 AM
-> - Price: 5,000 AMD
+> - Price: $30
 >
 > Shall I go ahead and book this for you?
 
