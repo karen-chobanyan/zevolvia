@@ -43,6 +43,7 @@ test.describe("Authentication flows", () => {
     const dashboardPage = new DashboardPage(page);
 
     await loginPage.goto("/dashboard");
+    await loginPage.expectLoaded();
     await loginPage.fillCredentials("owner.e2e@evolvia.test", "Password123!");
     await loginPage.submit();
 

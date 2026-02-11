@@ -76,14 +76,14 @@ export function buildChatMessages() {
   return [
     {
       id: "message-e2e-001",
-      role: "USER",
+      role: "USER" as const,
       content: "How should we handle no-shows this week?",
       createdAt: "2026-01-01T00:00:00.000Z",
       metadata: null,
     },
     {
       id: "message-e2e-002",
-      role: "ASSISTANT",
+      role: "ASSISTANT" as const,
       content: "Offer a same-day confirmation text and waitlist backup.",
       createdAt: "2026-01-01T00:00:01.000Z",
       metadata: null,

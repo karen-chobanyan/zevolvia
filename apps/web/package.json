@@ -24,7 +24,9 @@
     "@mantine/dates": "^8.3.14",
     "@mantine/hooks": "^8.3.14",
     "@next/third-parties": "16.1.1",
+    "@popperjs/core": "^2.11.8",
     "@types/react-datepicker": "^7.0.0",
+    "apexcharts": "^5.3.6",
     "axios": "1.13.0",
     "clsx": "2.1.1",
     "dayjs": "^1.11.19",
@@ -33,11 +35,14 @@
     "next": "^14.2.0",
     "pdfjs-dist": "5.4.530",
     "react": "^18.2.0",
+    "react-apexcharts": "^1.9.0",
     "react-datepicker": "^9.1.0",
     "react-dom": "^18.2.0",
+    "swiper": "^12.1.0",
     "tailwind-merge": "^2.5.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.51.1",
     "@svgr/webpack": "^8.1.0",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^20.11.10",
@@ -45,7 +50,6 @@
     "@types/react-dom": "^18.2.15",
     "postcss": "^8.4.38",
     "tailwindcss": "^4.0.0",
-    "typescript": "^5.3.3",
-    "@playwright/test": "^1.51.1"
+    "typescript": "^5.3.3"
   }
 }
