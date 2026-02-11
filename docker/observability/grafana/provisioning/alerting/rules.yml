@@ -1,0 +1,382 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: zevolvia-api-log-alerts
+    folder: Zevolvia
+    interval: 1m
+    rules:
+      - uid: zev_api_error_burst
+        title: API Error Burst (5m)
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum(count_over_time({service="api", env="prod", level=~"error|fatal"}[5m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 20
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        for: 2m
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: Error/fatal API logs exceeded 20 events in 5 minutes.
+        labels:
+          severity: critical
+          service: api
+          signal: logs
+
+      - uid: zev_auth_login_failures
+        title: Auth Login Failures Burst (10m)
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 1200
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum(count_over_time({service="api", env="prod", level=~"warn|error|fatal"} |= "Login failed" [10m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 15
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        for: 5m
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: Login failure warnings/errors exceeded 15 events in 10 minutes.
+        labels:
+          severity: warning
+          service: api
+          signal: security
+
+      - uid: zev_webhook_failures
+        title: Webhook Failures Burst (10m)
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 1200
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum(count_over_time({service="api", env="prod", level=~"warn|error|fatal"} |~ "(Stripe webhook missing|Invalid Stripe webhook|Twilio status callback did not match)" [10m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 10
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        for: 5m
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: Webhook-related warnings/errors exceeded 10 events in 10 minutes.
+        labels:
+          severity: warning
+          service: api
+          signal: integrations
+
+      - uid: zev_ingestion_failures
+        title: Ingestion Pipeline Failures (10m)
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 1200
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum(count_over_time({service="api", env="prod", level=~"error|fatal"} |~ "(Ingestion job failed|Failed to process file|Failed to generate embeddings from OpenAI)" [10m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 3
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        for: 3m
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: Ingestion failures exceeded 3 events in 10 minutes.
+        labels:
+          severity: critical
+          service: api
+          signal: ingestion
+
+      - uid: zev_token_refresh_failures
+        title: Token Refresh Failures Burst (10m)
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: loki
+            queryType: instant
+            relativeTimeRange:
+              from: 1200
+              to: 0
+            model:
+              datasource:
+                type: loki
+                uid: loki
+              editorMode: code
+              expr: 'sum(count_over_time({service="api", env="prod", level=~"warn|error|fatal"} |= "Token refresh failed" [10m]))'
+              intervalMs: 1000
+              maxDataPoints: 43200
+              queryType: instant
+              refId: A
+          - refId: B
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: A
+              intervalMs: 1000
+              maxDataPoints: 43200
+              reducer: last
+              refId: B
+              type: reduce
+          - refId: C
+            datasourceUid: __expr__
+            relativeTimeRange:
+              from: 0
+              to: 0
+            model:
+              conditions:
+                - evaluator:
+                    params:
+                      - 20
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params:
+                      - C
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              datasource:
+                name: Expression
+                type: __expr__
+                uid: __expr__
+              expression: B
+              intervalMs: 1000
+              maxDataPoints: 43200
+              refId: C
+              type: threshold
+        for: 5m
+        noDataState: OK
+        execErrState: Alerting
+        annotations:
+          summary: Token refresh failures exceeded 20 events in 10 minutes.
+        labels:
+          severity: warning
+          service: api
+          signal: auth

@@ -1,0 +1,113 @@
+data_dir: /vector-data-dir
+
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  docker_logs:
+    type: docker_logs
+    docker_host: unix:///var/run/docker.sock
+
+transforms:
+  api_logs:
+    type: remap
+    inputs:
+      - docker_logs
+    source: |
+      .compose_service = to_string(.label."com.docker.compose.service") ?? ""
+      .compose_project = to_string(.label."com.docker.compose.project") ?? ""
+
+      if .compose_service != "api" && .compose_service != "api-prod" {
+        abort
+      }
+
+      .service = "api"
+      .env = if .compose_service == "api-prod" { "prod" } else { "dev" }
+
+      if exists(.message) && is_string(.message) {
+        parsed, err = parse_json(.message)
+        if err == null && is_object(parsed) {
+          merged, merge_err = merge(., parsed)
+          if merge_err == null {
+            . = merged
+          } else {
+            .msg = .message
+          }
+        } else {
+          .msg = .message
+        }
+      }
+
+      if exists(.level) {
+        if is_integer(.level) {
+          level_num = to_int(.level) ?? 30
+          .level = if level_num >= 60 { "fatal" } else if level_num >= 50 { "error" } else if level_num >= 40 { "warn" } else if level_num >= 30 { "info" } else if level_num >= 20 { "debug" } else { "trace" }
+        } else {
+          .level = downcase(to_string(.level) ?? "info")
+        }
+      } else {
+        .level = "info"
+      }
+
+      if exists(.request) && is_object(.request) {
+        if exists(.request.headers.authorization) {
+          .request.headers.authorization = "[REDACTED]"
+        }
+        if exists(.request.headers.cookie) {
+          .request.headers.cookie = "[REDACTED]"
+        }
+        if exists(.request.body) && is_object(.request.body) {
+          if exists(.request.body.password) { .request.body.password = "[REDACTED]" }
+          if exists(.request.body.passwordConfirm) { .request.body.passwordConfirm = "[REDACTED]" }
+          if exists(.request.body.currentPassword) { .request.body.currentPassword = "[REDACTED]" }
+          if exists(.request.body.newPassword) { .request.body.newPassword = "[REDACTED]" }
+          if exists(.request.body.token) { .request.body.token = "[REDACTED]" }
+          if exists(.request.body.refreshToken) { .request.body.refreshToken = "[REDACTED]" }
+          if exists(.request.body.apiKey) { .request.body.apiKey = "[REDACTED]" }
+          if exists(.request.body.secret) { .request.body.secret = "[REDACTED]" }
+        }
+      }
+
+      if exists(.requestId) {
+        .requestId = to_string(.requestId) ?? .requestId
+      }
+      if exists(.orgId) {
+        .orgId = to_string(.orgId) ?? .orgId
+      }
+      if exists(.userId) {
+        .userId = to_string(.userId) ?? .userId
+      }
+
+      del(.message)
+      del(.source_type)
+      del(.label)
+      del(.container_id)
+      del(.container_name)
+      del(.container_created_at)
+      del(.image)
+      del(.stream)
+      del(.host)
+      del(.compose_project)
+      del(.compose_service)
+
+sinks:
+  loki:
+    type: loki
+    inputs:
+      - api_logs
+    endpoint: http://loki:3100
+    compression: gzip
+    encoding:
+      codec: json
+    labels:
+      service: "{{ service }}"
+      env: "{{ env }}"
+      level: "{{ level }}"
+    remove_label_fields: true
+    batch:
+      max_bytes: 512000
+      timeout_secs: 5
+      max_events: 1000
+    healthcheck:
+      enabled: true
