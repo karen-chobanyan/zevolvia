@@ -15,6 +15,7 @@ An AI-powered SaaS platform for beauty salons, featuring intelligent client foll
 - [Database Schema](#database-schema)
 - [File Ingestion Pipeline](#file-ingestion-pipeline)
 - [Authentication & Authorization](#authentication--authorization)
+- [Observability](#observability)
 - [Development](#development)
 - [Deployment](#deployment)
 
@@ -444,6 +445,17 @@ NEXT_PUBLIC_API_URL=http://localhost:3001/api
 | `docker-compose logs -f api` | Follow API logs          |
 | `docker-compose exec api sh` | Shell into API container |
 
+### Make Targets
+
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `make obs`           | Start Loki + Grafana + Vector                |
+| `make obs-down`      | Stop observability stack                     |
+| `make obs-logs`      | Follow observability stack logs              |
+| `make obs-ps`        | Show observability services status           |
+| `make prod-obs`      | Start production app + observability profile |
+| `make prod-obs-down` | Stop production app + observability profile  |
+
 ---
 
 ## API Reference
@@ -764,6 +776,71 @@ export class MyService {
   }
 }
 ```
+
+---
+
+## Observability
+
+The repository includes a production-oriented log pipeline:
+
+- **API (Pino JSON logs)** -> **Vector** -> **Loki** -> **Grafana**
+- `orgId`, `userId`, and `requestId` remain queryable fields for incident triage
+- Low-cardinality labels (`service`, `env`, `level`) are used for Loki indexing
+
+### Configuration Files
+
+- `docker/observability/loki-config.yml`
+- `docker/observability/vector.yaml`
+- `docker/observability/grafana/provisioning/datasources/loki.yml`
+- `docker/observability/grafana/provisioning/dashboards/dashboards.yml`
+- `docker/observability/grafana/provisioning/alerting/rules.yml`
+- `docker/observability/grafana/dashboards/api-logs-overview.json`
+
+### Start Observability Stack
+
+```bash
+# Observability only
+make obs
+
+# Production app + observability
+make prod-obs
+```
+
+### Access
+
+- Grafana: `http://localhost:${GRAFANA_PORT:-3030}` (default `admin` / `admin`)
+- Loki HTTP API: `http://localhost:${LOKI_PORT:-3100}`
+- Vector API: `http://localhost:${VECTOR_API_PORT:-8686}`
+
+### Query Examples (Grafana Explore -> Loki)
+
+```logql
+{service="api", env="prod"} | json
+```
+
+```logql
+{service="api", env="prod", level=~"error|fatal"} | json
+```
+
+```logql
+{service="api", env="prod"} | json | orgId="YOUR_ORG_ID"
+```
+
+```logql
+{service="api", env="prod"} | json | requestId="YOUR_REQUEST_ID"
+```
+
+### Provisioned Alerts
+
+Alert rules are auto-provisioned on Grafana startup from `docker/observability/grafana/provisioning/alerting/rules.yml`.
+
+- API Error Burst (5m)
+- Auth Login Failures Burst (10m)
+- Webhook Failures Burst (10m)
+- Ingestion Pipeline Failures (10m)
+- Token Refresh Failures Burst (10m)
+
+Configure notification channels in Grafana (`Alerting -> Contact points`) to deliver these alerts to Slack/PagerDuty/email.
 
 ---
 

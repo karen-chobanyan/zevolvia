@@ -4,6 +4,38 @@ import { v4 as uuidv4 } from "uuid";
 
 const REQUEST_ID_HEADER = "x-request-id";
 
+const SENSITIVE_QUERY_PARAMS = new Set([
+  "token",
+  "email",
+  "password",
+  "secret",
+  "apikey",
+  "api_key",
+  "access_token",
+  "refresh_token",
+]);
+
+const sanitizeUrl = (url: string): string => {
+  const questionMarkIndex = url.indexOf("?");
+  if (questionMarkIndex === -1) {
+    return url;
+  }
+
+  const path = url.slice(0, questionMarkIndex);
+  const queryString = url.slice(questionMarkIndex + 1);
+  const params = new URLSearchParams(queryString);
+  let redacted = false;
+
+  for (const key of Array.from(params.keys())) {
+    if (SENSITIVE_QUERY_PARAMS.has(key.toLowerCase())) {
+      params.set(key, "[REDACTED]");
+      redacted = true;
+    }
+  }
+
+  return redacted ? `${path}?${params.toString()}` : url;
+};
+
 interface ReqWithContext extends IncomingMessage {
   user?: {
     userId: string;
@@ -49,11 +81,11 @@ export const loggerConfig = (): Params => {
       },
 
       customSuccessMessage: (req: IncomingMessage, res: ServerResponse) => {
-        return `${req.method} ${req.url} completed with ${res.statusCode}`;
+        return `${req.method} ${sanitizeUrl(req.url || "")} completed with ${res.statusCode}`;
       },
 
       customErrorMessage: (req: IncomingMessage, res: ServerResponse) => {
-        return `${req.method} ${req.url} failed with ${res.statusCode}`;
+        return `${req.method} ${sanitizeUrl(req.url || "")} failed with ${res.statusCode}`;
       },
 
       customAttributeKeys: {
@@ -69,7 +101,7 @@ export const loggerConfig = (): Params => {
           return {
             id: r.id,
             method: r.method,
-            url: r.url,
+            url: sanitizeUrl(r.url || ""),
             headers: {
               host: r.headers.host,
               "user-agent": r.headers["user-agent"],
