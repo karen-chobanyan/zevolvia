@@ -277,7 +277,7 @@ export default function HomePage() {
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
                 <p className="text-sm font-semibold text-gray-900">No switching platforms</p>
-                <p className="mt-1 text-sm text-gray-600">Keep Vagaro, Fresha, or Boulevard.</p>
+                <p className="mt-1 text-sm text-gray-600">Keep your current software stack.</p>
               </div>
               <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
                 <p className="text-sm font-semibold text-gray-900">Your salon number stays</p>

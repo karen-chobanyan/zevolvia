@@ -20,7 +20,7 @@ export const metadata: Metadata = {
     default: "Evolvia - SMS Booking AI for Salons",
   },
   description:
-    "The SMS booking assistant that plugs into Vagaro, Fresha, or Boulevard so clients can book like they are texting a friend.",
+    "The SMS booking assistant that plugs into your existing booking software so clients can book like they are texting a friend.",
 };
 
 const inter = Inter({

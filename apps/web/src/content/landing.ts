@@ -38,9 +38,9 @@ export const socialProof = {
   text: "Works with the tools you already use",
   metric: "Text booking that feels like a personal concierge",
   logos: [
-    { name: "Vagaro", src: "/images/logos/vagaro.svg" },
-    { name: "Fresha", src: "/images/logos/fresha.svg" },
-    { name: "Boulevard", src: "/images/logos/boulevard.svg" },
+    { name: "Your booking system" },
+    { name: "Your calendar stack" },
+    { name: "Your salon workflows" },
   ],
 };
 
@@ -76,7 +76,7 @@ export const howItWorksSteps = [
   {
     icon: "Plug",
     title: "Connect your booking system",
-    description: "We plug into Vagaro, Fresha, or Boulevard in about 15 minutes.",
+    description: "We plug into your current booking software in about 15 minutes.",
     bullets: ["No switching platforms", "No retraining your team", "Works with your real calendar"],
   },
   {
@@ -204,7 +204,7 @@ export const pricingTiers = [
     description: "Everything you need to book via text without new staff.",
     features: [
       "Unlimited SMS booking",
-      "Connects to Vagaro, Fresha, Boulevard",
+      "Connects to your existing booking software",
       "Salon-fluent service understanding",
       "Automatic confirmations + staff alerts",
       "30-day money-back guarantee",
@@ -244,7 +244,7 @@ export const pricingTiers = [
 
 export const faqs = [
   {
-    question: "Do I have to switch from Vagaro, Fresha, or Boulevard?",
+    question: "Do I have to switch from my current booking software?",
     answer:
       "No. Evolvia plugs into your existing system so you keep your calendar, stylists, and workflows.",
   },
