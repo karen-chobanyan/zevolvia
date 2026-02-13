@@ -10,3 +10,4 @@ dist
 .github/instructions/codacy.instructions.md
 
 .pnpm-store
+.idea
