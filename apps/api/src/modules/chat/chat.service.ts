@@ -216,6 +216,10 @@ export class ChatService {
       this.logger.error({ err: (error as Error).message }, "Failed to retrieve citations");
     }
 
+    const timeZone = userId
+      ? await this.resolveUserTimeZone(userId, orgId)
+      : await this.resolveOrgTimeZone(orgId);
+
     const priorMessages = await this.messageRepo.find({
       where: { sessionId: session.id },
       order: { createdAt: "ASC" },
@@ -223,8 +227,14 @@ export class ChatService {
 
     const excludedMessageId = userMessage?.id ?? options?.existingUserMessageId;
     const history = excludedMessageId
-      ? buildConversationHistory(priorMessages.filter((m) => m.id !== excludedMessageId))
-      : buildConversationHistory(priorMessages);
+      ? buildConversationHistory(
+          priorMessages.filter((m) => m.id !== excludedMessageId),
+          undefined,
+          {
+            timeZone,
+          },
+        )
+      : buildConversationHistory(priorMessages, undefined, { timeZone });
 
     this.logger.info(
       {
@@ -236,11 +246,11 @@ export class ChatService {
       "Conversation history prepared",
     );
 
-    const timeZone = userId
-      ? await this.resolveUserTimeZone(userId, orgId)
-      : await this.resolveOrgTimeZone(orgId);
     const dateContext = this.buildDateContext(timeZone);
-    const dateBlock = `## Current date\nToday is ${dateContext.dateIso} (${dateContext.dayName}).`;
+    const dateBlock =
+      `## Current date\n` +
+      `Today is ${dateContext.dateIso} (${dateContext.dayName}) in ${dateContext.timeZone}. ` +
+      `Current local time is ${dateContext.timeLocal}.`;
 
     const baseSystemContent = `${dto?.system?.trim() || this.systemPrompt}\n\n${dateBlock}`;
     const systemContent = ragContext
@@ -684,17 +694,23 @@ export class ChatService {
       month: "2-digit",
       day: "2-digit",
       weekday: "long",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
     }).formatToParts(now);
 
     const year = parts.find((p) => p.type === "year")?.value ?? "1970";
     const month = parts.find((p) => p.type === "month")?.value ?? "01";
     const day = parts.find((p) => p.type === "day")?.value ?? "01";
     const dayName = parts.find((p) => p.type === "weekday")?.value ?? "Unknown";
+    const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+    const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
 
     return {
       timeZone,
       dateIso: `${year}-${month}-${day}`,
       dayName,
+      timeLocal: `${hour}:${minute}`,
     };
   }
 }
