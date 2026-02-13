@@ -153,7 +153,7 @@ export class ChatToolExecutor {
     const resolvedDate = this.resolveDate(date, context);
     if (!resolvedDate) {
       return {
-        error: `Could not resolve date: "${date}". Use YYYY-MM-DD or a relative phrase like "today", "tomorrow", "next monday".`,
+        error: `Could not resolve date: "${date}". The date may be in the past. Do NOT compute dates yourself — pass the user's phrase exactly (e.g. "today", "tomorrow", "next monday").`,
       };
     }
 
@@ -164,8 +164,10 @@ export class ChatToolExecutor {
       durationMinutes,
     );
 
-    const parsed = new Date(`${resolvedDate}T00:00:00`);
-    const dayName = Number.isFinite(parsed.getTime()) ? (DAY_NAMES[parsed.getDay()] ?? null) : null;
+    const parsed = this.parseIsoDateAsUtc(resolvedDate);
+    const dayName = Number.isFinite(parsed.getTime())
+      ? (DAY_NAMES[parsed.getUTCDay()] ?? null)
+      : null;
 
     const tz = context.timeZone ?? "UTC";
 
@@ -189,44 +191,52 @@ export class ChatToolExecutor {
 
     const trimmed = input.trim();
 
-    // Already YYYY-MM-DD — validate and pass through
+    // Already YYYY-MM-DD — validate and reject if in the past
     if (ISO_DATE_RE.test(trimmed)) {
-      const parsed = new Date(`${trimmed}T00:00:00`);
-      return Number.isFinite(parsed.getTime()) ? trimmed : null;
+      const parsed = this.parseIsoDateAsUtc(trimmed);
+      if (!Number.isFinite(parsed.getTime())) {
+        return null;
+      }
+      const tz = context.timeZone ?? "UTC";
+      const todayIso = this.formatDateInTz(tz);
+      if (trimmed < todayIso) {
+        this.logger.warn(
+          { input: trimmed, today: todayIso },
+          "LLM sent a past date — rejecting so it retries with a relative phrase",
+        );
+        return null;
+      }
+      return trimmed;
     }
 
     const tz = context.timeZone ?? "UTC";
-    const today = this.getTodayDate(tz);
+    const todayIso = this.formatDateInTz(tz);
+    const today = this.parseIsoDateAsUtc(todayIso);
     const normalized = trimmed.toLowerCase();
 
     if (normalized === "today") {
-      return this.formatDate(today);
+      return todayIso;
     }
 
     if (normalized === "tomorrow") {
-      return this.formatDate(this.addDays(today, 1));
+      return this.formatDateUtc(this.addDays(today, 1));
     }
 
     // "monday", "next tuesday", "this friday", etc.
     const weekdayMatch = normalized.match(WEEKDAY_RE);
     if (weekdayMatch) {
       const targetDay = WEEKDAY_INDEX[weekdayMatch[1]];
-      const currentDay = today.getDay();
+      const currentDay = today.getUTCDay();
       let delta = (targetDay - currentDay + 7) % 7;
       // "tuesday" on a Tuesday → next week, not today
       if (delta === 0) {
         delta = 7;
       }
-      return this.formatDate(this.addDays(today, delta));
+      return this.formatDateUtc(this.addDays(today, delta));
     }
 
     this.logger.warn({ input }, "Unresolvable date received from LLM");
     return null;
-  }
-
-  private getTodayDate(timeZone: string): Date {
-    const iso = this.formatDateInTz(timeZone);
-    return new Date(`${iso}T00:00:00`);
   }
 
   private formatDateInTz(timeZone: string): string {
@@ -258,10 +268,14 @@ export class ChatToolExecutor {
     return new Date(date.getTime() + days * 86_400_000);
   }
 
-  private formatDate(date: Date): string {
-    const y = date.getFullYear();
-    const m = String(date.getMonth() + 1).padStart(2, "0");
-    const d = String(date.getDate()).padStart(2, "0");
+  private parseIsoDateAsUtc(isoDate: string): Date {
+    return new Date(`${isoDate}T00:00:00.000Z`);
+  }
+
+  private formatDateUtc(date: Date): string {
+    const y = date.getUTCFullYear();
+    const m = String(date.getUTCMonth() + 1).padStart(2, "0");
+    const d = String(date.getUTCDate()).padStart(2, "0");
     return `${y}-${m}-${d}`;
   }
 

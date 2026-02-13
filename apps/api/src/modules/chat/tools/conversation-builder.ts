@@ -11,10 +11,36 @@ const ROLE_MAP: Record<string, "user" | "assistant"> = {
   [ChatRole.Assistant]: "assistant",
 };
 
+type BuildConversationHistoryOptions = {
+  timeZone?: string;
+};
+
+const formatMessageTimestamp = (value: Date, timeZone: string) => {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).formatToParts(value);
+
+  const year = parts.find((p) => p.type === "year")?.value ?? "1970";
+  const month = parts.find((p) => p.type === "month")?.value ?? "01";
+  const day = parts.find((p) => p.type === "day")?.value ?? "01";
+  const hour = parts.find((p) => p.type === "hour")?.value ?? "00";
+  const minute = parts.find((p) => p.type === "minute")?.value ?? "00";
+
+  return `${year}-${month}-${day} ${hour}:${minute}`;
+};
+
 export function buildConversationHistory(
   messages: ReadonlyArray<ChatMessage>,
   maxMessages = DEFAULT_MAX_MESSAGES,
+  options?: BuildConversationHistoryOptions,
 ): ChatCompletionMessageParam[] {
+  const timeZone = options?.timeZone || "UTC";
   const recent = messages.slice(-maxMessages);
 
   return recent.reduce<ChatCompletionMessageParam[]>((acc, msg) => {
@@ -22,6 +48,10 @@ export function buildConversationHistory(
     if (!role || !msg.content) {
       return acc;
     }
-    return [...acc, { role, content: msg.content }];
+
+    const timestamp = formatMessageTimestamp(msg.createdAt, timeZone);
+    const content = `[${timestamp} ${timeZone}] ${msg.content}`;
+
+    return [...acc, { role, content }];
   }, []);
 }
