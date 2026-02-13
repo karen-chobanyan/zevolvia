@@ -35,6 +35,40 @@ const formatMessageTimestamp = (value: Date, timeZone: string) => {
   return `${year}-${month}-${day} ${hour}:${minute}`;
 };
 
+function isStoredToolMessage(
+  msg: unknown,
+): msg is { role: "tool"; tool_call_id: string; content: string } {
+  if (typeof msg !== "object" || msg === null) return false;
+  const obj = msg as Record<string, unknown>;
+  return obj.role === "tool" && typeof obj.tool_call_id === "string";
+}
+
+function isStoredAssistantToolCall(
+  msg: unknown,
+): msg is { role: "assistant"; content: string | null; tool_calls: unknown[] } {
+  if (typeof msg !== "object" || msg === null) return false;
+  const obj = msg as Record<string, unknown>;
+  return obj.role === "assistant" && Array.isArray(obj.tool_calls);
+}
+
+function extractToolMessages(
+  metadata: Record<string, unknown> | null,
+): ChatCompletionMessageParam[] {
+  if (!metadata) return [];
+  const stored = metadata.toolMessages;
+  if (!Array.isArray(stored)) return [];
+
+  return stored.reduce<ChatCompletionMessageParam[]>((acc, entry) => {
+    if (isStoredAssistantToolCall(entry)) {
+      return [...acc, entry as ChatCompletionMessageParam];
+    }
+    if (isStoredToolMessage(entry)) {
+      return [...acc, entry as ChatCompletionMessageParam];
+    }
+    return acc;
+  }, []);
+}
+
 export function buildConversationHistory(
   messages: ReadonlyArray<ChatMessage>,
   maxMessages = DEFAULT_MAX_MESSAGES,
@@ -50,8 +84,14 @@ export function buildConversationHistory(
     }
 
     const timestamp = formatMessageTimestamp(msg.createdAt, timeZone);
-    const content = `[${timestamp} ${timeZone}] ${msg.content}`;
 
+    if (role === "assistant") {
+      const toolMsgs = extractToolMessages(msg.metadata);
+      const content = `[${timestamp} ${timeZone}] ${msg.content}`;
+      return [...acc, ...toolMsgs, { role, content }];
+    }
+
+    const content = `[${timestamp} ${timeZone}] ${msg.content}`;
     return [...acc, { role, content }];
   }, []);
 }

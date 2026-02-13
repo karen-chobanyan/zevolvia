@@ -266,6 +266,8 @@ export class ChatService {
     let answer = "I don't know.";
     let usage: OpenAI.CompletionUsage | undefined;
 
+    let toolMessages: OpenAI.ChatCompletionMessageParam[] = [];
+
     try {
       this.logger.info({ sessionId, orgId, toolCount: BOOKING_TOOLS.length }, "Starting tool loop");
       const result = await this.executeToolLoop(messages, orgId, {
@@ -273,6 +275,7 @@ export class ChatService {
       });
       answer = result.answer;
       usage = result.usage;
+      toolMessages = result.toolMessages;
     } catch (error) {
       const errPayload =
         error instanceof Error ? { message: error.message, stack: error.stack } : { error };
@@ -287,17 +290,11 @@ export class ChatService {
       throw new BadGatewayException("Chat service unavailable.");
     }
 
-    const assistantMessage = await this.persistAssistantMessage(
-      session.id,
-      answer,
-      citations,
-      usage
-        ? {
-            model: this.chatModel,
-            usage,
-          }
-        : { model: this.chatModel },
-    );
+    const assistantMessage = await this.persistAssistantMessage(session.id, answer, citations, {
+      model: this.chatModel,
+      ...(usage ? { usage } : {}),
+      ...(toolMessages.length > 0 ? { toolMessages } : {}),
+    });
 
     await this.touchSession(session, question);
 
@@ -322,9 +319,14 @@ export class ChatService {
     initialMessages: ReadonlyArray<OpenAI.ChatCompletionMessageParam>,
     orgId: string,
     toolContext: { timeZone?: string },
-  ): Promise<{ answer: string; usage?: OpenAI.CompletionUsage }> {
+  ): Promise<{
+    answer: string;
+    usage?: OpenAI.CompletionUsage;
+    toolMessages: OpenAI.ChatCompletionMessageParam[];
+  }> {
     let messages = [...initialMessages];
     let lastUsage: OpenAI.CompletionUsage | undefined;
+    const collectedToolMessages: OpenAI.ChatCompletionMessageParam[] = [];
 
     for (let i = 0; i < MAX_TOOL_ITERATIONS; i++) {
       const iterationStartMs = Date.now();
@@ -342,7 +344,7 @@ export class ChatService {
 
       if (!choice) {
         this.logger.warn({ orgId, iteration: i + 1 }, "No completion choice returned");
-        return { answer: "I don't know.", usage: lastUsage };
+        return { answer: "I don't know.", usage: lastUsage, toolMessages: collectedToolMessages };
       }
 
       const assistantMessage = choice.message;
@@ -354,10 +356,21 @@ export class ChatService {
           { orgId, iteration: i + 1, iterationMs: Date.now() - iterationStartMs },
           "Tool loop completed without tool calls",
         );
-        return { answer: text, usage: lastUsage };
+        return { answer: text, usage: lastUsage, toolMessages: collectedToolMessages };
       }
 
+      const serializedAssistant: OpenAI.ChatCompletionMessageParam = {
+        role: "assistant" as const,
+        content: assistantMessage.content ?? null,
+        tool_calls: toolCalls.map((tc) => ({
+          id: tc.id,
+          type: tc.type,
+          function: { name: tc.function.name, arguments: tc.function.arguments },
+        })),
+      };
+
       messages = [...messages, assistantMessage];
+      collectedToolMessages.push(serializedAssistant);
 
       this.logger.info(
         {
@@ -421,19 +434,23 @@ export class ChatService {
         }),
       );
 
-      const toolMessages: OpenAI.ChatCompletionToolMessageParam[] = toolResults.map((tr) => ({
-        role: "tool" as const,
-        tool_call_id: tr.toolCallId,
-        content: tr.result,
-      }));
+      const toolResponseMessages: OpenAI.ChatCompletionToolMessageParam[] = toolResults.map(
+        (tr) => ({
+          role: "tool" as const,
+          tool_call_id: tr.toolCallId,
+          content: tr.result,
+        }),
+      );
 
-      messages = [...messages, ...toolMessages];
+      messages = [...messages, ...toolResponseMessages];
+      collectedToolMessages.push(...toolResponseMessages);
     }
 
     this.logger.warn("Tool loop reached maximum iterations");
     return {
       answer: "I'm having trouble processing your request. Could you try rephrasing?",
       usage: lastUsage,
+      toolMessages: collectedToolMessages,
     };
   }
 
