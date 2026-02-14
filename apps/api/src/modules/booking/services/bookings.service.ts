@@ -5,6 +5,8 @@ import { Booking } from "../entities/booking.entity";
 import { Service } from "../entities/service.entity";
 import { CreateBookingDto, UpdateBookingDto, CheckAvailabilityDto } from "../dto/booking.dto";
 import { BookingStatus } from "../../../common/enums";
+import { Org } from "../../identity/entities/org.entity";
+import { isValidTimeZone, parseIncomingDateTimeAsOrgTime } from "../helpers/date-time.helper";
 
 export interface ListBookingsOptions {
   orgId: string;
@@ -32,6 +34,8 @@ export class BookingsService {
     private readonly bookingRepository: Repository<Booking>,
     @InjectRepository(Service)
     private readonly serviceRepository: Repository<Service>,
+    @InjectRepository(Org)
+    private readonly orgRepository: Repository<Org>,
   ) {}
 
   async create(orgId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -44,7 +48,8 @@ export class BookingsService {
       throw new NotFoundException("Service not found");
     }
 
-    const startTime = new Date(dto.startTime);
+    const orgTimeZone = await this.getOrgTimeZone(orgId);
+    const startTime = parseIncomingDateTimeAsOrgTime(dto.startTime, orgTimeZone);
     const endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
 
     // Check for conflicts
@@ -155,6 +160,7 @@ export class BookingsService {
 
   async update(id: string, orgId: string, dto: UpdateBookingDto): Promise<Booking> {
     const booking = await this.findById(id, orgId);
+    const orgTimeZone = await this.getOrgTimeZone(orgId);
 
     let startTime = booking.startTime;
     let endTime = booking.endTime;
@@ -171,7 +177,9 @@ export class BookingsService {
       }
 
       serviceId = dto.serviceId;
-      startTime = dto.startTime ? new Date(dto.startTime) : booking.startTime;
+      startTime = dto.startTime
+        ? parseIncomingDateTimeAsOrgTime(dto.startTime, orgTimeZone)
+        : booking.startTime;
       endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
     } else if (dto.startTime) {
       // If only start time is changing, recalculate with current service
@@ -180,7 +188,7 @@ export class BookingsService {
       });
 
       if (service) {
-        startTime = new Date(dto.startTime);
+        startTime = parseIncomingDateTimeAsOrgTime(dto.startTime, orgTimeZone);
         endTime = new Date(startTime.getTime() + service.durationMinutes * 60 * 1000);
       }
     }
@@ -231,8 +239,9 @@ export class BookingsService {
   }
 
   async checkAvailability(dto: CheckAvailabilityDto): Promise<boolean> {
-    const startTime = new Date(dto.startTime);
-    const endTime = new Date(dto.endTime);
+    const orgTimeZone = await this.getOrgTimeZone(dto.orgId);
+    const startTime = parseIncomingDateTimeAsOrgTime(dto.startTime, orgTimeZone);
+    const endTime = parseIncomingDateTimeAsOrgTime(dto.endTime, orgTimeZone);
 
     const hasConflict = await this.checkConflict(
       dto.orgId,
@@ -268,5 +277,19 @@ export class BookingsService {
 
     const count = await queryBuilder.getCount();
     return count > 0;
+  }
+
+  private async getOrgTimeZone(orgId: string): Promise<string | null> {
+    const org = await this.orgRepository.findOne({
+      where: { id: orgId },
+      select: ["timeZone"],
+    });
+
+    const value = org?.timeZone?.trim();
+    if (!value) {
+      return null;
+    }
+
+    return isValidTimeZone(value) ? value : null;
   }
 }
