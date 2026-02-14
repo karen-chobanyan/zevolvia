@@ -11,6 +11,7 @@ variables:
 
 stages:
   - build
+  - deploy
 
 build_and_push:
   stage: build
@@ -22,3 +23,42 @@ build_and_push:
     - docker push "$CI_REGISTRY_IMAGE/api:latest"
     - docker build -f docker/Dockerfile --target prod --build-arg APP=web --build-arg NEXT_PUBLIC_API_URL="$NEXT_PUBLIC_API_URL" -t "$CI_REGISTRY_IMAGE/web:latest" .
     - docker push "$CI_REGISTRY_IMAGE/web:latest"
+
+deploy_server:
+  stage: deploy
+  image: alpine:3.20
+  needs:
+    - build_and_push
+  rules:
+    - if: "$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH"
+  before_script:
+    - test -n "$DEPLOY_HOST"
+    - test -n "$DEPLOY_USER"
+    - test -n "$DEPLOY_PATH"
+    - test -n "$DEPLOY_SSH_PRIVATE_KEY"
+    - apk add --no-cache openssh-client rsync
+    - mkdir -p ~/.ssh
+    - chmod 700 ~/.ssh
+    - echo "$DEPLOY_SSH_PRIVATE_KEY" | base64 -d > ~/.ssh/id_ed25519
+    - chmod 600 ~/.ssh/id_ed25519
+    - ssh-keyscan -p "${DEPLOY_SSH_PORT:-22}" "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+  script:
+    - >
+      rsync -az --delete
+      -e "ssh -i ~/.ssh/id_ed25519 -p ${DEPLOY_SSH_PORT:-22} -o StrictHostKeyChecking=yes"
+      docker-compose.yml compose.prod.images.yml Makefile
+      "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+    - |
+      ssh -i ~/.ssh/id_ed25519 -p "${DEPLOY_SSH_PORT:-22}" -o StrictHostKeyChecking=yes "$DEPLOY_USER@$DEPLOY_HOST" \
+        /bin/sh -s -- "$DEPLOY_PATH" "$CI_REGISTRY" "$CI_REGISTRY_USER" "$CI_REGISTRY_PASSWORD" <<'EOF'
+      set -eu
+      DEPLOY_PATH="$1"
+      CI_REGISTRY="$2"
+      CI_REGISTRY_USER="$3"
+      CI_REGISTRY_PASSWORD="$4"
+      cd "$DEPLOY_PATH"
+      echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+      docker compose -f docker-compose.yml -f compose.prod.images.yml --profile prod pull
+      docker compose -f docker-compose.yml -f compose.prod.images.yml --profile prod up -d --no-build
+      EOF
