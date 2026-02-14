@@ -59,6 +59,5 @@ deploy_server:
       CI_REGISTRY_PASSWORD="$4"
       cd "$DEPLOY_PATH"
       echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-      docker compose -f docker-compose.yml -f compose.prod.images.yml --profile prod pull
-      docker compose -f docker-compose.yml -f compose.prod.images.yml --profile prod up -d --no-build
+      make prod-obs
       EOF
