@@ -11,7 +11,7 @@ export class HomePage {
     await expect(
       this.page.getByRole("heading", {
         level: 1,
-        name: "Your clients text. Zevolvia books. Chairs stay full.",
+        name: "Your clients text. Zevolvia books. You grow.",
       }),
     ).toBeVisible();
   }
@@ -26,7 +26,7 @@ export class HomePage {
   async openSignupFromHeader() {
     await this.page
       .locator("nav")
-      .getByRole("link", { name: /^book demo$/i })
+      .getByRole("link", { name: /^start free trial$/i })
       .click();
   }
 

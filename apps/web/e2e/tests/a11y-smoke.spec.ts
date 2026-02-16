@@ -10,16 +10,14 @@ test.describe("Accessibility smoke", () => {
     const main = page.getByRole("main");
     const heroHeading = page.getByRole("heading", {
       level: 1,
-      name: "Your clients text. Zevolvia books. Chairs stay full.",
+      name: "Your clients text. Zevolvia books. You grow.",
     });
 
     await expect(navigation).toBeVisible();
     await expect(page.getByRole("main")).toBeVisible();
     await expect(heroHeading).toBeVisible();
-    await expect(heroHeading).toHaveAccessibleName(
-      "Your clients text. Zevolvia books. Chairs stay full.",
-    );
-    await expect(main).toContainText("Book a 10-minute demo");
+    await expect(heroHeading).toHaveAccessibleName("Your clients text. Zevolvia books. You grow.");
+    await expect(main).toContainText("Start Your Free Trial");
   });
 
   test("login page exposes form controls for keyboard users", async ({ page }) => {

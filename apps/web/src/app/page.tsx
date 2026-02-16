@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import Script from "next/script";
 import {
   heroContent,
   socialProof,
@@ -10,13 +11,24 @@ import {
   proofStats,
   problemPoints,
   howItWorksSteps,
-  comparisonRows,
   testimonials,
   pricingTiers,
   faqs,
 } from "@/content/landing";
-import { FAQAccordion, PhoneMockup } from "@/components/landing";
-import { ArrowRight, Bell, Calendar, Check, Clock, MessageSquare, Plug, Star } from "lucide-react";
+import { FAQAccordion, PhoneMockup, ROICalculator } from "@/components/landing";
+import {
+  ArrowRight,
+  Bell,
+  Calendar,
+  Check,
+  CheckCircle2,
+  Clock,
+  MessageCircle,
+  MessageSquare,
+  Plug,
+  Star,
+  Zap,
+} from "lucide-react";
 
 const iconMap = {
   MessageSquare,
@@ -26,12 +38,42 @@ const iconMap = {
   Bell,
 };
 
+const heroHighlightIconMap = {
+  check: CheckCircle2,
+  plug: Plug,
+  message: MessageCircle,
+  zap: Zap,
+};
+
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-white font-sans text-gray-900 selection:bg-brand-500 selection:text-white">
+      <Script id="meta-pixel" strategy="afterInteractive">
+        {`!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1673385903293674');
+fbq('track', 'PageView');`}
+      </Script>
+      <noscript>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          height="1"
+          width="1"
+          style={{ display: "none" }}
+          src="https://www.facebook.com/tr?id=1673385903293674&ev=PageView&noscript=1"
+          alt=""
+        />
+      </noscript>
+
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-gray-100 bg-white/85 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           <Link href="/" className="flex items-center">
             <Image
               src="/images/logo/logo.svg"
@@ -42,7 +84,7 @@ export default function HomePage() {
               priority
             />
           </Link>
-          <div className="hidden items-center gap-8 md:flex">
+          <div className="ml-auto hidden items-center gap-8 md:flex">
             {navItems.map((item) => (
               <Link
                 key={item.label}
@@ -58,12 +100,17 @@ export default function HomePage() {
             >
               Sign in
             </Link>
-            <Link
-              href="/signup"
-              className="rounded-full bg-gray-900 px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-gray-800"
-            >
-              Book demo
-            </Link>
+            <div className="group relative">
+              <Link
+                href="/signup"
+                className="rounded-full bg-brand-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
+              >
+                Start Free Trial
+              </Link>
+              <p className="pointer-events-none absolute left-1/2 top-full mt-1 -translate-x-1/2 whitespace-nowrap text-[11px] text-gray-500 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                No credit card required
+              </p>
+            </div>
           </div>
         </div>
       </nav>
@@ -78,7 +125,7 @@ export default function HomePage() {
             className="object-cover opacity-90"
             priority
           />
-          <div className="absolute inset-0 bg-gradient-to-b from-white/90 via-brand-50/60 to-white/95" />
+          <div className="absolute inset-0 bg-gradient-to-b from-white/95 via-white/80 to-brand-50/70" />
         </div>
 
         <div className="relative z-10 mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[1.1fr_0.9fr]">
@@ -94,30 +141,35 @@ export default function HomePage() {
             </p>
 
             <div className="mt-6 grid gap-3">
-              {heroContent.highlights.map((item) => (
-                <div key={item} className="flex items-start gap-2 text-sm text-gray-700">
-                  <Check className="mt-0.5 h-4 w-4 text-brand-600" />
-                  <span>{item}</span>
-                </div>
-              ))}
+              {heroContent.highlights.map((item) => {
+                const Icon = heroHighlightIconMap[item.icon as keyof typeof heroHighlightIconMap];
+                return (
+                  <div key={item.text} className="flex items-start gap-3 text-sm text-gray-700">
+                    <Icon className="mt-0.5 h-4 w-4 text-brand-600" />
+                    <span>{item.text}</span>
+                  </div>
+                );
+              })}
             </div>
 
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-              <Link
-                href="/signup"
-                className="group inline-flex items-center justify-center gap-2 rounded-full bg-brand-500 px-8 py-4 text-base font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
-              >
-                {heroContent.ctaText}
-                <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
-              </Link>
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex flex-col items-start">
+                <Link
+                  href="/signup"
+                  className="group inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-600 px-10 py-4 text-lg font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:bg-brand-700 focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2 sm:w-auto"
+                >
+                  {heroContent.ctaText}
+                  <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-0.5" />
+                </Link>
+                <p className="mt-2 text-xs font-medium text-gray-600">{heroContent.ctaSubtext}</p>
+              </div>
               <Link
                 href={heroContent.secondaryCtaHref}
-                className="inline-flex items-center justify-center rounded-full border border-gray-300 px-6 py-4 text-sm font-semibold text-gray-700 transition-colors hover:border-brand-300 hover:text-brand-700"
+                className="inline-flex items-center justify-center rounded-full border border-gray-300 bg-white/85 px-6 py-3.5 text-sm font-semibold text-gray-700 transition-colors hover:border-brand-300 hover:text-brand-700"
               >
                 {heroContent.secondaryCtaText}
               </Link>
             </div>
-            <p className="mt-3 text-sm text-gray-600">{heroContent.ctaSubtext}</p>
 
             <div className="mt-8 flex flex-wrap items-center gap-3 text-xs font-semibold text-gray-600">
               {socialProof.logos.map((logo) => (
@@ -141,6 +193,10 @@ export default function HomePage() {
               <p className="text-xs font-semibold text-brand-700">After-hours capture</p>
               <p className="text-lg font-bold text-brand-900">24/7</p>
             </div>
+            <div className="absolute -bottom-10 right-4 hidden rounded-2xl border border-gray-200 bg-white/90 px-4 py-3 shadow-lg backdrop-blur-md lg:block">
+              <p className="text-xs font-semibold text-gray-700">Setup time</p>
+              <p className="text-lg font-bold text-gray-900">15 minutes</p>
+            </div>
           </div>
         </div>
       </section>
@@ -154,7 +210,7 @@ export default function HomePage() {
               {socialProof.text}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
             {proofStats.map((stat) => (
               <div
                 key={stat.label}
@@ -260,77 +316,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Integrations */}
-      <section id="integrations" className="scroll-mt-24 bg-brand-50 py-16 sm:py-20">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 lg:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <span className="inline-flex items-center rounded-full bg-white px-4 py-1.5 text-sm font-medium text-brand-700">
-              Integrations
-            </span>
-            <h2 className="mt-4 font-serif text-3xl font-bold text-gray-900 sm:text-4xl">
-              Keep your booking system. Make it smarter.
-            </h2>
-            <p className="mt-4 text-lg text-gray-700">
-              Zevolvia connects to your existing calendar so you never have to migrate data or
-              retrain staff. Clients just text your salon number and bookings appear where they
-              always have.
-            </p>
-            <div className="mt-6 grid gap-4 sm:grid-cols-2">
-              <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-gray-900">No switching platforms</p>
-                <p className="mt-1 text-sm text-gray-600">Keep your current software stack.</p>
-              </div>
-              <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-gray-900">Your salon number stays</p>
-                <p className="mt-1 text-sm text-gray-600">
-                  Clients text the same number as always.
-                </p>
-              </div>
-              <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-gray-900">Real-time availability</p>
-                <p className="mt-1 text-sm text-gray-600">Only confirm what is truly open.</p>
-              </div>
-              <div className="rounded-2xl border border-brand-100 bg-white p-4 shadow-sm">
-                <p className="text-sm font-semibold text-gray-900">Staff notifications</p>
-                <p className="mt-1 text-sm text-gray-600">Every booking is logged and shared.</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-3xl border border-brand-200 bg-white/80 p-6 shadow-lg">
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-700">
-              Built for salon ops
-            </p>
-            <h3 className="mt-3 text-xl font-semibold text-gray-900">
-              Works with your current stack
-            </h3>
-            <div className="mt-6 flex flex-wrap gap-3">
-              {socialProof.logos.map((logo) => (
-                <div
-                  key={logo.name}
-                  className="rounded-full border border-gray-200 bg-gray-50 px-4 py-2 text-sm font-semibold text-gray-700"
-                >
-                  {logo.name}
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 rounded-2xl border border-gray-200 bg-gray-50 p-5">
-              <p className="text-sm font-semibold text-gray-900">No replacement anxiety</p>
-              <p className="mt-2 text-sm text-gray-600">
-                Zevolvia is an add-on, not a rip-and-replace system. Start today without changing
-                anything else.
-              </p>
-              <Link
-                href="/signup"
-                className="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-brand-700 hover:text-brand-800"
-              >
-                Book a demo <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
       {/* Features */}
       <section id="features" className="scroll-mt-24 bg-gray-50 py-16 sm:py-20">
         <div className="mx-auto max-w-7xl px-6">
@@ -346,7 +331,7 @@ export default function HomePage() {
             </p>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             {features.map((feature) => (
               <div
                 key={feature.title}
@@ -360,53 +345,19 @@ export default function HomePage() {
               </div>
             ))}
           </div>
-        </div>
-      </section>
 
-      {/* Comparison */}
-      <section id="comparison" className="scroll-mt-24 bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="text-center">
-            <span className="inline-flex items-center rounded-full bg-brand-50 px-4 py-1.5 text-sm font-medium text-brand-700">
-              Comparison
-            </span>
-            <h2 className="mt-4 font-serif text-3xl font-bold text-gray-900 sm:text-4xl">
-              Built to complement, not replace
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              A quick look at how Zevolvia stacks up against enterprise platforms, voice AI, and
-              booking forms.
-            </p>
-          </div>
-
-          <div className="mt-10 overflow-x-auto rounded-2xl border border-gray-200">
-            <table className="min-w-[720px] w-full border-collapse text-left text-sm">
-              <thead className="bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-                <tr>
-                  <th className="px-5 py-4">Feature</th>
-                  <th className="bg-brand-50 px-5 py-4 text-brand-700">Zevolvia</th>
-                  <th className="px-5 py-4">Zenoti/Booker</th>
-                  <th className="px-5 py-4">Voice AI</th>
-                  <th className="px-5 py-4">Online Forms</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparisonRows.map((row) => (
-                  <tr key={row.feature} className="border-t border-gray-200">
-                    <td className="px-5 py-4 font-medium text-gray-900">{row.feature}</td>
-                    <td className="bg-brand-50 px-5 py-4 font-semibold text-brand-800">
-                      {row.zevolvia}
-                    </td>
-                    <td className="px-5 py-4 text-gray-600">{row.enterprise}</td>
-                    <td className="px-5 py-4 text-gray-600">{row.voiceAi}</td>
-                    <td className="px-5 py-4 text-gray-600">{row.forms}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="mt-10 text-center">
+            <Link
+              href="/signup"
+              className="inline-flex items-center justify-center rounded-full bg-brand-600 px-8 py-3.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-brand-700"
+            >
+              Get all features free for 30 days
+            </Link>
           </div>
         </div>
       </section>
+
+      <ROICalculator />
 
       {/* Testimonials */}
       <section id="testimonials" className="scroll-mt-24 bg-gray-50 py-16 sm:py-20">
@@ -565,26 +516,114 @@ export default function HomePage() {
 
       {/* Footer */}
       <footer className="border-t border-gray-800 bg-gray-900 py-12">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-6 px-6 md:flex-row">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/images/logo/logo.svg"
-              alt="Zevolvia Logo"
-              width={172}
-              height={40}
-              className="h-9 w-auto"
-            />
-          </Link>
-          <p className="text-sm text-gray-500">
-            (c) {new Date().getFullYear()} Zevolvia. All rights reserved.
-          </p>
-          <div className="flex items-center gap-4 text-sm text-gray-400">
-            <Link href="/login" className="hover:text-white">
-              Sign in
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-2 lg:grid-cols-5">
+          <div>
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/images/logo/logo.svg"
+                alt="Zevolvia Logo"
+                width={172}
+                height={40}
+                className="h-9 w-auto"
+              />
             </Link>
-            <Link href="/signup" className="hover:text-white">
-              Book demo
-            </Link>
+            <p className="mt-4 text-sm text-gray-500">
+              (c) {new Date().getFullYear()} Zevolvia.
+              <br />
+              All rights reserved.
+            </p>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white">Product</h3>
+            <ul className="mt-4 space-y-3 text-sm text-gray-400">
+              <li>
+                <Link href="/#how-it-works" className="hover:text-white">
+                  Solutions
+                </Link>
+              </li>
+              <li>
+                <Link href="/#pricing" className="hover:text-white">
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link href="/#features" className="hover:text-white">
+                  Features
+                </Link>
+              </li>
+              <li>
+                <Link href="/#faq" className="hover:text-white">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <span className="text-gray-500">Changelog (Coming soon)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white">Integrations</h3>
+            <ul className="mt-4 space-y-3 text-sm text-gray-400">
+              <li>
+                <Link href="/integrations/vagaro" className="hover:text-white">
+                  Vagaro
+                </Link>
+              </li>
+              <li>
+                <Link href="/integrations/glossgenius" className="hover:text-white">
+                  GlossGenius
+                </Link>
+              </li>
+              <li>
+                <Link href="/integrations/boulevard" className="hover:text-white">
+                  Boulevard
+                </Link>
+              </li>
+              <li>
+                <Link href="/integrations/google-calendar" className="hover:text-white">
+                  Google Calendar
+                </Link>
+              </li>
+              <li>
+                <span className="text-gray-500">All integrations (Coming soon)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white">Company</h3>
+            <ul className="mt-4 space-y-3 text-sm text-gray-400">
+              <li>
+                <span className="text-gray-500">About (Coming soon)</span>
+              </li>
+              <li>
+                <span className="text-gray-500">Blog (Coming soon)</span>
+              </li>
+              <li>
+                <span className="text-gray-500">Contact (Coming soon)</span>
+              </li>
+              <li>
+                <span className="text-gray-500">Careers (Coming soon)</span>
+              </li>
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="text-sm font-semibold text-white">Legal</h3>
+            <ul className="mt-4 space-y-3 text-sm text-gray-400">
+              <li>
+                <Link href="/privacy" className="hover:text-white">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link href="/terms" className="hover:text-white">
+                  Terms of Service
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
       </footer>

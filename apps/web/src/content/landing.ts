@@ -1,18 +1,31 @@
-import { Bell, Calendar, Clock, MessageSquare, Plug, Sparkles } from "lucide-react";
+import {
+  BarChart3,
+  Bell,
+  Calendar,
+  ClipboardList,
+  MessageCircle,
+  Moon,
+  Scissors,
+  Users,
+} from "lucide-react";
 
 export const heroContent = {
-  eyebrow: "Every missed text is a missed booking",
-  headline: "Your clients text. Zevolvia books. Chairs stay full.",
+  eyebrow: "The AI booking system built for salons",
+  headline: "Your clients text. Zevolvia books. You grow.",
   subheadline:
-    "Clients text your salon number like they'd text a friend. Real calendar, real availability, instant confirmation — even at 11 PM.",
-  ctaText: "Book a 10-minute demo",
-  ctaSubtext: "Setup in 15 minutes. $99/month. No contracts.",
-  secondaryCtaText: "See the text flow",
+    "The complete AI booking platform for salons — handle appointments, reminders, and client management via SMS. Works on its own or with the tools you already use.",
+  ctaText: "Start Your Free Trial",
+  ctaSubtext: "Free for 30 days. No credit card. No contracts.",
+  secondaryCtaText: "See how it works ↓",
   secondaryCtaHref: "#how-it-works",
   highlights: [
-    "Works with the software you already use",
-    "Understands salon services like balayage, highlights, and root touch-ups",
-    "Instant confirmations with staff notifications",
+    { icon: "check", text: "Full booking system — no other software needed" },
+    {
+      icon: "plug",
+      text: "Integrates with Vagaro, GlossGenius, Boulevard, Google Calendar & more",
+    },
+    { icon: "message", text: "Clients book via text — 24/7, even after hours" },
+    { icon: "zap", text: "Live in 15 minutes, free for 30 days" },
   ],
 };
 
@@ -45,10 +58,9 @@ export const socialProof = {
 };
 
 export const proofStats = [
-  { value: "15 min", label: "Average setup time" },
-  { value: "24/7", label: "Booking coverage" },
-  { value: "< 1 min", label: "Typical response" },
-  { value: "$99", label: "Flat monthly price" },
+  { value: "Under 60 seconds", label: "Average booking time" },
+  { value: "24/7", label: "After-hours capture" },
+  { value: "15 minutes", label: "Setup time" },
 ];
 
 export const problemPoints = [
@@ -103,34 +115,51 @@ export const howItWorksSteps = [
 
 export const features = [
   {
-    icon: MessageSquare,
+    icon: MessageCircle,
     title: "SMS-native booking",
-    description: "Clients book in one text thread, just like they do with friends.",
+    description:
+      "Clients book in one text thread, like texting a friend. No app, no login, no friction.",
   },
   {
-    icon: Plug,
-    title: "Plug-and-play setup",
-    description: "Keep your current booking software and make it smarter in minutes.",
-  },
-  {
-    icon: Sparkles,
+    icon: Scissors,
     title: "Salon-fluent AI",
-    description: "Understands services, timing, and salon language without confusion.",
+    description:
+      "Understands balayage vs. highlights, knows a men's cut takes 30 minutes, asks the right follow-ups.",
   },
   {
     icon: Calendar,
-    title: "Real-time calendar checks",
-    description: "Never double-book. We only confirm what is truly available.",
+    title: "Real-time calendar",
+    description:
+      "Built-in scheduling that prevents double-booking. See your whole team's day at a glance.",
   },
   {
-    icon: Clock,
+    icon: Users,
+    title: "Smart staff matching",
+    description:
+      "Assigns the right stylist based on skill, availability, and client preference — automatically.",
+  },
+  {
+    icon: ClipboardList,
+    title: "Client management",
+    description:
+      "Track visit history, preferences, no-shows, and rebooking patterns. Know your clients before they sit down.",
+  },
+  {
+    icon: Moon,
     title: "After-hours capture",
-    description: "Book clients when your front desk is closed or busy.",
+    description:
+      "Book clients at 11 PM, 6 AM, Sunday afternoon. Never lose a booking to 'we're closed.'",
   },
   {
     icon: Bell,
-    title: "Instant staff alerts",
-    description: "Stylists get notified instantly so they can prepare.",
+    title: "Automated reminders",
+    description: "Reduce no-shows by 60% with smart SMS reminders 24h and 2h before appointments.",
+  },
+  {
+    icon: BarChart3,
+    title: "Analytics dashboard",
+    description:
+      "See booking volume, revenue per stylist, peak hours, and conversion rates. Data-driven decisions.",
   },
 ];
 
@@ -165,7 +194,7 @@ export const comparisonRows = [
   },
   {
     feature: "Monthly cost",
-    zevolvia: "$99",
+    zevolvia: "$19 + $9/seat",
     enterprise: "$300+",
     voiceAi: "$199+",
     forms: "Included",
@@ -198,46 +227,42 @@ export const testimonials = [
 
 export const pricingTiers = [
   {
-    name: "Single Location",
-    price: "$99",
-    period: "/month",
-    description: "Everything you need to book via text without new staff.",
+    name: "Starter",
+    price: "$19",
+    period: "to start",
+    description: "Base subscription to launch Zevolvia in your salon.",
     features: [
-      "Unlimited SMS booking",
-      "Connects to your existing booking software",
-      "Salon-fluent service understanding",
-      "Automatic confirmations + staff alerts",
-      "30-day money-back guarantee",
+      "Full AI booking system",
+      "SMS booking, reminders, and client management",
+      "Works standalone or with your existing tools",
     ],
-    cta: "Book a 10-minute demo",
+    cta: "Start Free Trial",
     highlight: true,
   },
   {
-    name: "Multi-Location",
-    price: "$199",
-    period: "/month",
-    description: "For growing salon groups and multi-chair teams.",
+    name: "Additional Seats",
+    price: "$9",
+    period: "per seat/staff",
+    description: "Scale with your team as you add more staff.",
     features: [
-      "Everything in Single Location",
-      "Shared reporting across locations",
-      "Priority onboarding and support",
-      "Custom booking rules per location",
+      "Per additional seat/staff member",
+      "Same booking automation across all seats",
+      "Simple usage-based scaling",
     ],
-    cta: "Talk to sales",
+    cta: "Start Free Trial",
     highlight: false,
   },
   {
-    name: "Enterprise",
-    price: "Custom",
+    name: "Annual Subscription",
+    price: "20% off",
     period: "",
-    description: "Need advanced workflows, SLAs, or custom integrations?",
+    description: "Save 20% when billed annually.",
     features: [
-      "Dedicated success manager",
-      "Custom security + compliance",
-      "Multi-brand support",
-      "Volume pricing",
+      "Discount applies to the full subscription",
+      "Lower total cost as you grow seats",
+      "Same pricing model, billed yearly",
     ],
-    cta: "Contact enterprise",
+    cta: "Choose Annual",
     highlight: false,
   },
 ];
@@ -274,13 +299,12 @@ export const footerContent = {
   headline: "Ready to capture bookings while you sleep?",
   subheadline:
     "Book more appointments without adding staff. Zevolvia works with the system you already use.",
-  ctaText: "Book a 10-minute demo",
+  ctaText: "Start Your Free Trial",
   ctaSubtext: "No credit card required. Setup in 15 minutes.",
 };
 
 export const navItems = [
-  { label: "How it works", href: "#how-it-works" },
-  { label: "Integrations", href: "#integrations" },
+  { label: "Solutions", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ];

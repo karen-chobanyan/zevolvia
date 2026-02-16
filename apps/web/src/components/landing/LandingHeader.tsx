@@ -2,11 +2,10 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, ArrowRight } from "lucide-react";
+import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Container } from "./Container";
-import { cn } from "@/utils";
 
 interface NavItem {
   label: string;
@@ -19,7 +18,7 @@ interface LandingHeaderProps {
 
 const defaultNavItems: NavItem[] = [
   { label: "Features", href: "#features" },
-  { label: "How It Works", href: "#how-it-works" },
+  { label: "Solutions", href: "#how-it-works" },
   { label: "Pricing", href: "#pricing" },
   { label: "FAQ", href: "#faq" },
 ];
@@ -69,19 +68,22 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
           </nav>
 
           {/* Desktop CTA */}
-          <div className="hidden items-center gap-4 md:flex">
+          <div className="hidden items-start gap-4 md:flex">
             <Link
               href="/login"
               className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
-              Sign In
+              Sign in
             </Link>
-            <Link
-              href="/auth/signup"
-              className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-brand-400 to-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:shadow-md"
-            >
-              Start Free Trial <ArrowRight className="h-4 w-4" />
-            </Link>
+            <div className="flex flex-col items-center">
+              <Link
+                href="/auth/signup"
+                className="inline-flex items-center rounded-full bg-brand-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-brand-700"
+              >
+                Start Free Trial
+              </Link>
+              <p className="mt-1 text-[11px] text-gray-500">No credit card required</p>
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -125,14 +127,17 @@ export function LandingHeader({ navItems = defaultNavItems }: LandingHeaderProps
                   href="/login"
                   className="rounded-lg px-4 py-3 text-base font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-900"
                 >
-                  Sign In
+                  Sign in
                 </Link>
-                <Link
-                  href="/auth/signup"
-                  className="mx-4 mt-2 flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-brand-400 to-brand-600 py-3 text-base font-semibold text-white"
-                >
-                  Start Free Trial <ArrowRight className="h-5 w-5" />
-                </Link>
+                <div className="mx-4 mt-2">
+                  <Link
+                    href="/auth/signup"
+                    className="flex items-center justify-center rounded-xl bg-brand-600 py-3 text-base font-semibold text-white transition-colors hover:bg-brand-700"
+                  >
+                    Start Free Trial
+                  </Link>
+                  <p className="mt-2 text-center text-xs text-gray-500">No credit card required</p>
+                </div>
               </nav>
             </Container>
           </motion.div>
