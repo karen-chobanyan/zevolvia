@@ -225,47 +225,34 @@ export const testimonials = [
   },
 ];
 
-export const pricingTiers = [
-  {
-    name: "Starter",
-    price: "$19",
-    period: "to start",
-    description: "Base subscription to launch Zevolvia in your salon.",
+export const pricingContent = {
+  heading: "One plan. Everything included.",
+  subheading: "Simple pricing that scales with your team. No hidden fees, no per-booking charges.",
+  plan: {
+    name: "Zevolvia for Salons",
+    monthlyPrice: 19,
+    seatPrice: 9,
+    annualDiscount: 0.2,
+    description: "Everything you need to automate bookings and grow your salon.",
+    cta: "Start Your Free Trial",
     features: [
       "Full AI booking system",
-      "SMS booking, reminders, and client management",
-      "Works standalone or with your existing tools",
+      "SMS booking & reminders",
+      "Client management",
+      "Smart staff matching",
+      "Real-time calendar sync",
+      "After-hours capture",
+      "Analytics dashboard",
+      "Works with your existing tools",
     ],
-    cta: "Start Free Trial",
-    highlight: true,
   },
-  {
-    name: "Additional Seats",
-    price: "$9",
-    period: "per seat/staff",
-    description: "Scale with your team as you add more staff.",
-    features: [
-      "Per additional seat/staff member",
-      "Same booking automation across all seats",
-      "Simple usage-based scaling",
-    ],
-    cta: "Start Free Trial",
-    highlight: false,
-  },
-  {
-    name: "Annual Subscription",
-    price: "20% off",
-    period: "",
-    description: "Save 20% when billed annually.",
-    features: [
-      "Discount applies to the full subscription",
-      "Lower total cost as you grow seats",
-      "Same pricing model, billed yearly",
-    ],
-    cta: "Choose Annual",
-    highlight: false,
-  },
-];
+  included: [
+    { title: "30-day free trial", description: "No credit card required" },
+    { title: "Unlimited bookings", description: "No per-booking fees" },
+    { title: "Guided setup", description: "Live in 15 minutes" },
+    { title: "Cancel anytime", description: "No long-term contracts" },
+  ],
+};
 
 export const faqs = [
   {

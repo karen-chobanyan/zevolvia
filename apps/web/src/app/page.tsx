@@ -12,10 +12,9 @@ import {
   problemPoints,
   howItWorksSteps,
   testimonials,
-  pricingTiers,
   faqs,
 } from "@/content/landing";
-import { FAQAccordion, PhoneMockup, ROICalculator } from "@/components/landing";
+import { FAQAccordion, PhoneMockup, PricingSection, ROICalculator } from "@/components/landing";
 import {
   ArrowRight,
   Bell,
@@ -398,65 +397,7 @@ fbq('track', 'PageView');`}
         </div>
       </section>
 
-      {/* Pricing */}
-      <section id="pricing" className="scroll-mt-24 bg-white py-16 sm:py-20">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="text-center">
-            <span className="inline-flex items-center rounded-full bg-brand-50 px-4 py-1.5 text-sm font-medium text-brand-700">
-              Pricing
-            </span>
-            <h2 className="mt-4 font-serif text-3xl font-bold text-gray-900 sm:text-4xl">
-              Simple, transparent plans
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-              Clear pricing that pays for itself with just a few extra bookings each month.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
-            {pricingTiers.map((tier) => (
-              <div
-                key={tier.name}
-                className={`relative rounded-2xl border bg-white p-6 shadow-sm ${
-                  tier.highlight
-                    ? "border-brand-500 shadow-lg ring-2 ring-brand-400"
-                    : "border-gray-200"
-                }`}
-              >
-                {tier.highlight && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-4 py-1 text-xs font-semibold uppercase tracking-wide text-white">
-                    Most popular
-                  </div>
-                )}
-                <h3 className="text-lg font-semibold text-gray-900">{tier.name}</h3>
-                <p className="mt-1 text-sm text-gray-600">{tier.description}</p>
-                <div className="mt-5 flex items-end gap-1">
-                  <span className="text-3xl font-bold text-gray-900">{tier.price}</span>
-                  <span className="text-sm text-gray-500">{tier.period}</span>
-                </div>
-                <div className="mt-6 space-y-3 text-sm text-gray-600">
-                  {tier.features.map((feature) => (
-                    <div key={feature} className="flex items-start gap-2">
-                      <Check className="mt-0.5 h-4 w-4 text-brand-600" />
-                      <span>{feature}</span>
-                    </div>
-                  ))}
-                </div>
-                <Link
-                  href="/signup"
-                  className={`mt-8 block w-full rounded-xl py-3 text-center text-sm font-semibold transition-colors ${
-                    tier.highlight
-                      ? "bg-brand-600 text-white hover:bg-brand-700"
-                      : "bg-gray-900 text-white hover:bg-gray-800"
-                  }`}
-                >
-                  {tier.cta}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <PricingSection />
 
       {/* FAQ */}
       <section id="faq" className="scroll-mt-24 bg-gray-50 py-16 sm:py-20">
