@@ -457,7 +457,7 @@ fbq('track', 'PageView');`}
 
       {/* Footer */}
       <footer className="border-t border-gray-800 bg-gray-900 py-12">
-        <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-2 lg:grid-cols-5">
+        <div className="mx-auto grid max-w-7xl gap-10 px-6 md:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link href="/" className="flex items-center">
               <Image
@@ -500,35 +500,6 @@ fbq('track', 'PageView');`}
               </li>
               <li>
                 <span className="text-gray-500">Changelog (Coming soon)</span>
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h3 className="text-sm font-semibold text-white">Integrations</h3>
-            <ul className="mt-4 space-y-3 text-sm text-gray-400">
-              <li>
-                <Link href="/integrations/vagaro" className="hover:text-white">
-                  Vagaro
-                </Link>
-              </li>
-              <li>
-                <Link href="/integrations/glossgenius" className="hover:text-white">
-                  GlossGenius
-                </Link>
-              </li>
-              <li>
-                <Link href="/integrations/boulevard" className="hover:text-white">
-                  Boulevard
-                </Link>
-              </li>
-              <li>
-                <Link href="/integrations/google-calendar" className="hover:text-white">
-                  Google Calendar
-                </Link>
-              </li>
-              <li>
-                <span className="text-gray-500">All integrations (Coming soon)</span>
               </li>
             </ul>
           </div>

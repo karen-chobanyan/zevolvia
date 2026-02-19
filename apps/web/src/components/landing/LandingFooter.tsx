@@ -28,13 +28,6 @@ const footerLinks = {
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
   ],
-  integrations: [
-    { label: "Vagaro", href: "/integrations/vagaro" },
-    { label: "GlossGenius", href: "/integrations/glossgenius" },
-    { label: "Boulevard", href: "/integrations/boulevard" },
-    { label: "Google Calendar", href: "/integrations/google-calendar" },
-    { label: "All integrations", comingSoon: true },
-  ],
 };
 
 export function LandingFooter() {
@@ -61,7 +54,7 @@ export function LandingFooter() {
     <footer className="border-t border-gray-200 bg-white">
       <Container>
         {/* Main Footer */}
-        <div className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5 lg:py-16">
+        <div className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:py-16">
           {/* Brand Column */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center">
@@ -82,12 +75,6 @@ export function LandingFooter() {
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Product</h3>
             <ul className="mt-4 space-y-3">{renderLinks(footerLinks.product)}</ul>
-          </div>
-
-          {/* Integrations Links */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Integrations</h3>
-            <ul className="mt-4 space-y-3">{renderLinks(footerLinks.integrations)}</ul>
           </div>
 
           {/* Company Links */}
