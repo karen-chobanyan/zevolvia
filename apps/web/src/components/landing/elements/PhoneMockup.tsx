@@ -109,6 +109,33 @@ export function PhoneMockup({ messages, className, animated = true }: PhoneMocku
                   </div>
                 </motion.div>
               ))}
+              {animated && (
+                <motion.div
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: messages.length * 0.4 + 0.2, duration: 0.3 }}
+                  className="flex justify-start"
+                  aria-hidden="true"
+                >
+                  <div className="rounded-2xl rounded-bl-md border border-gray-100 bg-white px-3 py-2 shadow-sm">
+                    <div className="flex items-center gap-1.5">
+                      {[0, 1, 2].map((dot) => (
+                        <motion.span
+                          key={dot}
+                          className="h-1.5 w-1.5 rounded-full bg-gray-400"
+                          animate={{ opacity: [0.35, 1, 0.35] }}
+                          transition={{
+                            duration: 1.2,
+                            repeat: Infinity,
+                            ease: "easeInOut",
+                            delay: dot * 0.2,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
             </div>
 
             {/* Input Bar */}

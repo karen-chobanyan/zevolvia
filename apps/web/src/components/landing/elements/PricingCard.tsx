@@ -1,112 +1,117 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { cn } from "@/utils";
 
 interface PricingCardProps {
   name: string;
-  price: number;
-  priceSuffix: string;
-  locationRange: string;
   description: string;
+  price: number;
+  originalPrice?: number;
+  seatPrice: number;
   features: string[];
   cta: string;
-  popular?: boolean;
-  index?: number;
-  isInView?: boolean;
+  isAnnual: boolean;
+  isInView: boolean;
 }
 
 export function PricingCard({
   name,
-  price,
-  priceSuffix,
-  locationRange,
   description,
+  price,
+  originalPrice,
+  seatPrice,
   features,
   cta,
-  popular = false,
-  index = 0,
-  isInView = true,
+  isAnnual,
+  isInView,
 }: PricingCardProps) {
+  const trackClick = () => {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      (window as any).gtag("event", "pricing_cta_click", {
+        event_category: "conversion",
+        event_label: isAnnual ? "annual" : "monthly",
+      });
+    }
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.15, duration: 0.5 }}
-      className={cn(
-        "relative rounded-2xl border bg-white p-6 sm:p-8 transition-shadow",
-        popular
-          ? "border-purple-500 shadow-xl ring-2 ring-purple-500"
-          : "border-gray-200 shadow-sm hover:shadow-md",
-      )}
+      transition={{ delay: 0.3, duration: 0.6 }}
+      className="relative overflow-hidden rounded-2xl border border-brand-200 bg-white shadow-lg shadow-brand-100/40"
     >
-      {/* Popular Badge */}
-      {popular && (
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-          <span className="rounded-full bg-gradient-to-r from-[#667eea] to-[#764ba2] px-4 py-1.5 text-sm font-semibold text-white shadow-lg">
-            Most Popular
+      <div className="h-1 bg-gradient-to-r from-brand-400 via-brand-500 to-brand-600" />
+
+      <div className="p-8 sm:p-10">
+        <h3 className="text-xl font-semibold text-gray-900">{name}</h3>
+        <p className="mt-1.5 text-sm text-gray-600">{description}</p>
+
+        <div className="mt-8 flex flex-wrap items-baseline gap-x-1 gap-y-2">
+          <span className="text-sm font-medium text-gray-500">$</span>
+          <AnimatePresence mode="wait">
+            <motion.span
+              key={price}
+              initial={{ opacity: 0, y: -12 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: 12 }}
+              transition={{ duration: 0.2 }}
+              className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl"
+            >
+              {price}
+            </motion.span>
+          </AnimatePresence>
+          <div className="ml-1 flex flex-col">
+            <span className="text-sm text-gray-500">/month</span>
+            {isAnnual && originalPrice != null && (
+              <span className="text-xs text-gray-400 line-through">${originalPrice}/mo</span>
+            )}
+          </div>
+          {isAnnual && (
+            <motion.span
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="ml-3 self-center rounded-full bg-brand-50 px-3 py-1 text-xs font-semibold text-brand-700"
+            >
+              Billed annually
+            </motion.span>
+          )}
+        </div>
+
+        <div className="mt-4 inline-flex items-center rounded-lg border border-gray-100 bg-gray-50 px-4 py-2.5">
+          <span className="text-sm text-gray-600">
+            + <span className="font-semibold text-gray-900">${seatPrice}</span>/mo per additional
+            staff member
           </span>
         </div>
-      )}
 
-      {/* Plan Name & Location Range */}
-      <div>
-        <h3 className="text-xl font-semibold text-gray-900">{name}</h3>
-        <p className="mt-1 text-sm text-purple-600 font-medium">{locationRange}</p>
-      </div>
+        <div className="my-8 h-px bg-gray-100" />
 
-      {/* Price */}
-      <div className="mt-4 flex items-baseline">
-        <span className="text-4xl font-bold text-gray-900">${price}</span>
-        <span className="ml-1 text-gray-500">{priceSuffix}</span>
-      </div>
-
-      {/* Description */}
-      <p className="mt-4 text-sm text-gray-600">{description}</p>
-
-      {/* Features List */}
-      <ul className="mt-6 space-y-3">
-        {features.map((feature, i) => (
-          <li key={i} className="flex items-start gap-3">
-            <div
-              className={cn(
-                "mt-0.5 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full",
-                popular ? "bg-purple-100" : "bg-gray-100",
-              )}
-            >
-              <Check className={cn("h-3 w-3", popular ? "text-purple-600" : "text-gray-600")} />
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {features.map((feature) => (
+            <div key={feature} className="flex items-center gap-2.5">
+              <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-brand-50">
+                <Check className="h-3 w-3 text-brand-600" />
+              </div>
+              <span className="text-sm text-gray-700">{feature}</span>
             </div>
-            <span className="text-sm text-gray-600">{feature}</span>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </div>
 
-      {/* CTA Button */}
-      <Link
-        href="/auth/signup"
-        className={cn(
-          "mt-8 block w-full rounded-xl py-3 text-center font-semibold transition-all",
-          popular
-            ? "bg-gradient-to-r from-[#667eea] to-[#764ba2] text-white shadow-lg hover:shadow-xl"
-            : "bg-gray-900 text-white hover:bg-gray-800",
-        )}
-        onClick={() => {
-          // Track analytics event
-          if (typeof window !== "undefined" && (window as any).gtag) {
-            (window as any).gtag("event", "pricing_cta_click", {
-              event_category: "conversion",
-              event_label: name.toLowerCase(),
-            });
-          }
-        }}
-      >
-        {cta}
-      </Link>
+        <Link
+          href="/signup"
+          onClick={trackClick}
+          className="mt-8 block w-full rounded-xl bg-brand-600 py-3.5 text-center text-base font-semibold text-white shadow-sm transition-all hover:bg-brand-700 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-brand-400 focus:ring-offset-2"
+        >
+          {cta}
+        </Link>
 
-      {/* Money Back Guarantee */}
-      <p className="mt-4 text-center text-xs text-gray-500">30-day money-back guarantee</p>
+        <p className="mt-4 text-center text-sm text-gray-500">
+          Free for 30 days. No credit card required.
+        </p>
+      </div>
     </motion.div>
   );
 }

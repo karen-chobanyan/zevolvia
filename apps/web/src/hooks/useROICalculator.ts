@@ -3,38 +3,28 @@
 import { useState, useMemo } from "react";
 
 interface ROIInputs {
-  numberOfLocations: number;
-  questionsPerDayPerLocation: number;
-  minutesPerQuestion: number;
-  managerHourlyRate: number;
+  staffCount: number;
+  missedTextsPerDay: number;
+  averageAppointmentValue: number;
 }
 
 interface ROIOutputs {
-  hoursPerWeekSaved: number;
-  monthlySavings: number;
-  yearlySavings: number;
+  recoveredBookingsPerMonth: number;
+  additionalMonthlyRevenue: number;
   monthlyPlanCost: number;
-  netMonthlySavings: number;
-  roi: number;
+  netMonthlyGain: number;
+  roiMultiple: number;
 }
 
 const defaultInputs: ROIInputs = {
-  numberOfLocations: 10,
-  questionsPerDayPerLocation: 20,
-  minutesPerQuestion: 5,
-  managerHourlyRate: 25,
+  staffCount: 5,
+  missedTextsPerDay: 5,
+  averageAppointmentValue: 80,
 };
 
-function getPlanCost(locations: number): number {
-  if (locations <= 10) return 99;
-  if (locations <= 25) return 79;
-  return 59;
-}
-
-function getPlanName(locations: number): string {
-  if (locations <= 10) return "Starter";
-  if (locations <= 25) return "Professional";
-  return "Enterprise";
+function getMonthlyPlanCost(staffCount: number): number {
+  // $19 base + $9 for each additional staff seat
+  return 19 + Math.max(0, staffCount - 1) * 9;
 }
 
 export function useROICalculator(initialInputs?: Partial<ROIInputs>) {
@@ -44,37 +34,21 @@ export function useROICalculator(initialInputs?: Partial<ROIInputs>) {
   });
 
   const outputs = useMemo((): ROIOutputs => {
-    const { numberOfLocations, questionsPerDayPerLocation, minutesPerQuestion, managerHourlyRate } =
-      inputs;
+    const { staffCount, missedTextsPerDay, averageAppointmentValue } = inputs;
+    const monthlyPlanCost = getMonthlyPlanCost(staffCount);
 
-    // Calculate daily minutes saved across all locations
-    const dailyMinutesSaved = numberOfLocations * questionsPerDayPerLocation * minutesPerQuestion;
-
-    // Convert to hours per week (assuming 5 working days)
-    const hoursPerWeekSaved = (dailyMinutesSaved * 5) / 60;
-
-    // Calculate monthly savings (4 weeks)
-    const monthlySavings = hoursPerWeekSaved * 4 * managerHourlyRate;
-
-    // Calculate yearly savings
-    const yearlySavings = monthlySavings * 12;
-
-    // Get plan cost based on number of locations
-    const monthlyPlanCost = getPlanCost(numberOfLocations);
-
-    // Calculate net savings
-    const netMonthlySavings = monthlySavings - monthlyPlanCost;
-
-    // Calculate ROI percentage
-    const roi = monthlyPlanCost > 0 ? (netMonthlySavings / monthlyPlanCost) * 100 : 0;
+    // Conservative estimate of missed inquiries that convert once auto-replies are enabled.
+    const recoveredBookingsPerMonth = Math.round(missedTextsPerDay * 30 * 0.35);
+    const additionalMonthlyRevenue = recoveredBookingsPerMonth * averageAppointmentValue;
+    const netMonthlyGain = additionalMonthlyRevenue - monthlyPlanCost;
+    const roiMultiple = monthlyPlanCost > 0 ? additionalMonthlyRevenue / monthlyPlanCost : 0;
 
     return {
-      hoursPerWeekSaved: Math.round(hoursPerWeekSaved * 10) / 10,
-      monthlySavings: Math.round(monthlySavings),
-      yearlySavings: Math.round(yearlySavings),
+      recoveredBookingsPerMonth,
+      additionalMonthlyRevenue,
       monthlyPlanCost,
-      netMonthlySavings: Math.round(netMonthlySavings),
-      roi: Math.round(roi),
+      netMonthlyGain: Math.round(netMonthlyGain),
+      roiMultiple: Math.round(roiMultiple * 10) / 10,
     };
   }, [inputs]);
 
@@ -82,12 +56,9 @@ export function useROICalculator(initialInputs?: Partial<ROIInputs>) {
     setInputs((prev) => ({ ...prev, [key]: value }));
   };
 
-  const planName = getPlanName(inputs.numberOfLocations);
-
   return {
     inputs,
     outputs,
     updateInput,
-    planName,
   };
 }

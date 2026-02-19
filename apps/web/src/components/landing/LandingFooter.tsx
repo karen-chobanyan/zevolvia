@@ -4,39 +4,57 @@ import Link from "next/link";
 import Image from "next/image";
 import { Container } from "./Container";
 
+type FooterLink = {
+  label: string;
+  href?: string;
+  comingSoon?: boolean;
+};
+
 const footerLinks = {
   product: [
-    { label: "Features", href: "#features" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
-    { label: "Integrations", href: "#" },
+    { label: "Solutions", href: "/#how-it-works" },
+    { label: "Pricing", href: "/#pricing" },
+    { label: "Features", href: "/#features" },
+    { label: "FAQ", href: "/#faq" },
+    { label: "Changelog", comingSoon: true },
   ],
   company: [
-    { label: "About", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Contact", href: "#" },
+    { label: "About", comingSoon: true },
+    { label: "Blog", comingSoon: true },
+    { label: "Contact", comingSoon: true },
+    { label: "Careers", comingSoon: true },
   ],
   legal: [
-    { label: "Privacy Policy", href: "#" },
-    { label: "Terms of Service", href: "#" },
-    { label: "Cookie Policy", href: "#" },
-    { label: "GDPR", href: "#" },
-  ],
-  support: [
-    { label: "Help Center", href: "#" },
-    { label: "Documentation", href: "#" },
-    { label: "Status", href: "#" },
-    { label: "API Reference", href: "#" },
+    { label: "Privacy Policy", href: "/privacy" },
+    { label: "Terms of Service", href: "/terms" },
   ],
 };
 
 export function LandingFooter() {
+  const renderLinks = (links: FooterLink[]) =>
+    links.map((link) => (
+      <li key={link.label}>
+        {link.href ? (
+          <Link
+            href={link.href}
+            className="text-sm text-gray-600 transition-colors hover:text-gray-900"
+          >
+            {link.label}
+          </Link>
+        ) : (
+          <span className="text-sm text-gray-500">
+            {link.label}
+            {link.comingSoon ? " (Coming soon)" : ""}
+          </span>
+        )}
+      </li>
+    ));
+
   return (
     <footer className="border-t border-gray-200 bg-white">
       <Container>
         {/* Main Footer */}
-        <div className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-5 lg:py-16">
+        <div className="grid gap-8 py-12 sm:grid-cols-2 lg:grid-cols-4 lg:py-16">
           {/* Brand Column */}
           <div className="lg:col-span-1">
             <Link href="/" className="flex items-center">
@@ -51,88 +69,24 @@ export function LandingFooter() {
             <p className="mt-4 text-sm text-gray-600">
               AI-powered SMS booking for salons. Clients text, Zevolvia books, chairs stay full.
             </p>
-
-            {/* Social Links */}
-            <div className="mt-6 flex gap-4">
-              {["Twitter", "LinkedIn", "Facebook"].map((social) => (
-                <a
-                  key={social}
-                  href="#"
-                  className="flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200 hover:text-gray-900"
-                  aria-label={social}
-                >
-                  <span className="text-xs font-bold">{social[0]}</span>
-                </a>
-              ))}
-            </div>
           </div>
 
           {/* Product Links */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Product</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.product.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-gray-600 transition-colors hover:text-gray-900"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <ul className="mt-4 space-y-3">{renderLinks(footerLinks.product)}</ul>
           </div>
 
           {/* Company Links */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Company</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.company.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-gray-600 transition-colors hover:text-gray-900"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Support Links */}
-          <div>
-            <h3 className="text-sm font-semibold text-gray-900">Support</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.support.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-gray-600 transition-colors hover:text-gray-900"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <ul className="mt-4 space-y-3">{renderLinks(footerLinks.company)}</ul>
           </div>
 
           {/* Legal Links */}
           <div>
             <h3 className="text-sm font-semibold text-gray-900">Legal</h3>
-            <ul className="mt-4 space-y-3">
-              {footerLinks.legal.map((link) => (
-                <li key={link.label}>
-                  <a
-                    href={link.href}
-                    className="text-sm text-gray-600 transition-colors hover:text-gray-900"
-                  >
-                    {link.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <ul className="mt-4 space-y-3">{renderLinks(footerLinks.legal)}</ul>
           </div>
         </div>
 
