@@ -1,31 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 
 interface ROIInputs {
-  staffCount: number;
-  missedTextsPerDay: number;
-  averageAppointmentValue: number;
+  averageServicePrice: number;
+  weeklyNoShows: number;
+  stylists: number;
 }
 
 interface ROIOutputs {
-  recoveredBookingsPerMonth: number;
-  additionalMonthlyRevenue: number;
-  monthlyPlanCost: number;
-  netMonthlyGain: number;
-  roiMultiple: number;
+  annualLostRevenue: number;
+  monthlyLostRevenue: number;
 }
 
 const defaultInputs: ROIInputs = {
-  staffCount: 5,
-  missedTextsPerDay: 5,
-  averageAppointmentValue: 80,
+  averageServicePrice: 80,
+  weeklyNoShows: 4,
+  stylists: 3,
 };
-
-function getMonthlyPlanCost(staffCount: number): number {
-  // $19 base + $9 for each additional staff seat
-  return 19 + Math.max(0, staffCount - 1) * 9;
-}
 
 export function useROICalculator(initialInputs?: Partial<ROIInputs>) {
   const [inputs, setInputs] = useState<ROIInputs>({
@@ -34,21 +26,14 @@ export function useROICalculator(initialInputs?: Partial<ROIInputs>) {
   });
 
   const outputs = useMemo((): ROIOutputs => {
-    const { staffCount, missedTextsPerDay, averageAppointmentValue } = inputs;
-    const monthlyPlanCost = getMonthlyPlanCost(staffCount);
+    const { averageServicePrice, weeklyNoShows, stylists } = inputs;
 
-    // Conservative estimate of missed inquiries that convert once auto-replies are enabled.
-    const recoveredBookingsPerMonth = Math.round(missedTextsPerDay * 30 * 0.35);
-    const additionalMonthlyRevenue = recoveredBookingsPerMonth * averageAppointmentValue;
-    const netMonthlyGain = additionalMonthlyRevenue - monthlyPlanCost;
-    const roiMultiple = monthlyPlanCost > 0 ? additionalMonthlyRevenue / monthlyPlanCost : 0;
+    const annualLostRevenue = Math.round(averageServicePrice * weeklyNoShows * stylists * 52);
+    const monthlyLostRevenue = Math.round(annualLostRevenue / 12);
 
     return {
-      recoveredBookingsPerMonth,
-      additionalMonthlyRevenue,
-      monthlyPlanCost,
-      netMonthlyGain: Math.round(netMonthlyGain),
-      roiMultiple: Math.round(roiMultiple * 10) / 10,
+      annualLostRevenue,
+      monthlyLostRevenue,
     };
   }, [inputs]);
 
