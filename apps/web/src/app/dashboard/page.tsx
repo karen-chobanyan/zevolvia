@@ -1,13 +1,29 @@
 "use client";
 
+import { AlertCircle, BadgeCheck, CircleCheckBig, DollarSign, HandCoins } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/ui/Button";
 import Loading from "@/components/loading/Loading";
 import StatCard from "@/components/dashboard/StatCard";
-import { ChatIcon, DocsIcon, GroupIcon } from "@/icons";
+import SmartPulse from "@/components/dashboard/SmartPulse";
+import { ChatIcon } from "@/icons";
 import { getMe, logout } from "@/lib/auth";
 import { DashboardSummary, getDashboardSummary } from "@/lib/dashboard";
+
+type FocusStatus = "Confirmed" | "Checked In" | "Unconfirmed";
+
+const focusStatusStyles: Record<FocusStatus, string> = {
+  Confirmed: "bg-blue-100 text-blue-700",
+  "Checked In": "bg-green-100 text-green-700",
+  Unconfirmed: "bg-amber-100 text-amber-700",
+};
+
+const focusStatusIcons = {
+  Confirmed: BadgeCheck,
+  "Checked In": CircleCheckBig,
+  Unconfirmed: AlertCircle,
+};
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -59,18 +75,22 @@ export default function DashboardPage() {
           </div>
         </div>
 
+        <div className="mt-8">
+          <SmartPulse />
+        </div>
+
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           <StatCard
-            title="Active team members"
-            value={String(summary?.widgets.members ?? 0)}
-            subtitle="Currently active"
-            icon={<GroupIcon className="h-6 w-6" />}
+            title="Projected Daily Revenue"
+            value="$1,250"
+            subtitle="Based on today’s confirmed bookings"
+            icon={<DollarSign className="h-6 w-6" />}
           />
           <StatCard
-            title="Knowledge files"
-            value={String(summary?.widgets.files ?? 0)}
-            subtitle="Uploaded this month"
-            icon={<DocsIcon className="h-6 w-6" />}
+            title="Recovered Revenue"
+            value="$450"
+            subtitle="Recovered from saved opportunities"
+            icon={<HandCoins className="h-6 w-6" />}
           />
           <StatCard
             title="Client follow-ups"
@@ -92,29 +112,44 @@ export default function DashboardPage() {
                   time: "10:00 AM",
                   title: "Balayage + gloss",
                   note: "Client: Nia Johnson",
+                  status: "Confirmed" as const,
                 },
                 {
                   time: "1:30 PM",
                   title: "Men's cut + beard",
                   note: "Client: Andre Lewis",
+                  status: "Checked In" as const,
                 },
                 {
                   time: "4:00 PM",
                   title: "Blowout + treatment",
                   note: "Client: Sofia Patel",
+                  status: "Unconfirmed" as const,
                 },
-              ].map((item) => (
-                <div
-                  key={item.time}
-                  className="flex items-start justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                    <p className="text-xs text-gray-500">{item.note}</p>
+              ].map((item) => {
+                const StatusIcon = focusStatusIcons[item.status];
+
+                return (
+                  <div
+                    key={item.time}
+                    className="flex items-start justify-between rounded-xl border border-gray-100 bg-gray-50 px-4 py-3"
+                  >
+                    <div>
+                      <p className="text-sm font-semibold text-gray-900">{item.title}</p>
+                      <p className="text-xs text-gray-500">{item.note}</p>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <span className="text-xs font-medium text-gray-500">{item.time}</span>
+                      <span
+                        className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ${focusStatusStyles[item.status]}`}
+                      >
+                        <StatusIcon className="h-3.5 w-3.5" />
+                        {item.status}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs font-medium text-gray-500">{item.time}</span>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 

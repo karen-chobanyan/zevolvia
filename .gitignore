@@ -1,6 +1,6 @@
 node_modules
 .next
-.next_*
+.next*
 dist
 .env
 .env.*
