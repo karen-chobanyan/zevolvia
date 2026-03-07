@@ -6,6 +6,7 @@ type SignupInput = {
   orgName: string;
   email: string;
   password: string;
+  country: string;
 };
 
 export class SignupPage {
@@ -39,6 +40,9 @@ export class SignupPage {
     await orgNameInput.click();
     await orgNameInput.fill("");
     await orgNameInput.type(input.orgName);
+
+    // ZEVO-15: Country selection
+    await this.page.getByRole("combobox").selectOption(input.country);
 
     await emailInput.click();
     await emailInput.fill("");

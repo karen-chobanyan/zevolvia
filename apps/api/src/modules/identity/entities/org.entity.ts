@@ -14,6 +14,9 @@ export class Org extends BaseModel {
   @Column({ type: "text", nullable: true })
   phone!: string | null;
 
+  @Column({ type: "text", default: "US" })
+  country!: string;
+
   @Column({ name: "time_zone", type: "text", nullable: true })
   timeZone!: string | null;
 

@@ -10,6 +10,7 @@ import Button from "@/ui/Button";
 import Loading from "@/components/loading/Loading";
 import { EyeCloseIcon, EyeIcon } from "@/icons";
 import { register } from "@/lib/auth";
+import { ISO_COUNTRY_OPTIONS } from "@/constants/isoCountries";
 
 export default function SignupForm() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function SignupForm() {
   const [lastName, setLastName] = useState("");
   const [orgName, setOrgName] = useState("");
   const [email, setEmail] = useState("");
+  const [country, setCountry] = useState("US");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [accepted, setAccepted] = useState(false);
@@ -28,6 +30,7 @@ export default function SignupForm() {
     password.trim() !== "" &&
     firstName.trim() !== "" &&
     lastName.trim() !== "" &&
+    country.trim() !== "" &&
     accepted;
 
   async function onSubmit(event: React.FormEvent) {
@@ -43,6 +46,7 @@ export default function SignupForm() {
         firstName,
         lastName,
         orgName: orgName.trim() || undefined,
+        country,
       });
       didRedirect = true;
       router.replace("/dashboard");
@@ -99,6 +103,22 @@ export default function SignupForm() {
             placeholder="Glow Studio"
             className="!bg-white !text-gray-900 !border-gray-200 focus:!border-brand-500"
           />
+        </div>
+        <div>
+          <Label>
+            Country <span className="text-error-500">*</span>
+          </Label>
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            className="h-11 w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-900 shadow-theme-xs focus:border-brand-300 focus:outline-hidden"
+          >
+            {ISO_COUNTRY_OPTIONS.map((option) => (
+              <option key={option.code} value={option.code}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
         <div>
           <Label>
