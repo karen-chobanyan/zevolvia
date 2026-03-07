@@ -7,6 +7,7 @@ import { CreateBookingDto, UpdateBookingDto, CheckAvailabilityDto } from "../dto
 import { BookingStatus } from "../../../common/enums";
 import { Org } from "../../identity/entities/org.entity";
 import { isValidTimeZone, parseIncomingDateTimeAsOrgTime } from "../helpers/date-time.helper";
+import { NotificationsService } from "../../notifications/notifications.service";
 
 export interface ListBookingsOptions {
   orgId: string;
@@ -36,6 +37,7 @@ export class BookingsService {
     private readonly serviceRepository: Repository<Service>,
     @InjectRepository(Org)
     private readonly orgRepository: Repository<Org>,
+    private readonly notificationsService: NotificationsService,
   ) {}
 
   async create(orgId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -72,7 +74,9 @@ export class BookingsService {
     });
 
     const saved = await this.bookingRepository.save(booking);
-    return this.findById(saved.id, orgId);
+    const createdBooking = await this.findById(saved.id, orgId);
+    await this.notificationsService.queueBookingCreated(createdBooking, orgTimeZone);
+    return createdBooking;
   }
 
   async findAll(options: ListBookingsOptions): Promise<PaginatedBookings> {

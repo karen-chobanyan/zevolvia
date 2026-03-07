@@ -18,6 +18,7 @@ import { BillingModule } from "./modules/billing/billing.module";
 import { EmailModule } from "./modules/email/email.module";
 import { ProfileModule } from "./modules/profile/profile.module";
 import { SmsModule } from "./modules/sms/sms.module";
+import { NotificationsModule } from "./modules/notifications/notifications.module";
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { SmsModule } from "./modules/sms/sms.module";
     FilesModule,
     IdentityModule,
     IngestionModule,
+    NotificationsModule,
     KnowledgeModule,
     BookingModule,
     BillingModule,

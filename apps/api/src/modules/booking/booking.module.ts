@@ -16,11 +16,13 @@ import { BookingsController } from "./controllers/bookings.controller";
 import { StaffServicesController } from "./controllers/staff-services.controller";
 import { AuthModule } from "../auth/auth.module";
 import { IdentityModule } from "../identity/identity.module";
+import { NotificationsModule } from "../notifications/notifications.module";
 
 @Module({
   imports: [
     AuthModule,
     IdentityModule,
+    NotificationsModule,
     TypeOrmModule.forFeature([Service, Client, Booking, StaffService]),
   ],
   controllers: [

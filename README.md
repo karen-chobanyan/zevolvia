@@ -355,6 +355,14 @@ MINIO_BUCKET=zevolvia-files
 REDIS_HOST=localhost
 REDIS_PORT=6379
 
+# Web Push
+PUSH_NOTIFICATIONS_ENABLED=false
+PUSH_VAPID_SUBJECT=mailto:alerts@your-domain.com
+PUSH_VAPID_PUBLIC_KEY=your-public-vapid-key
+PUSH_VAPID_PRIVATE_KEY=your-private-vapid-key
+# Optional: defaults to 3
+PUSH_NOTIFICATION_MAX_RETRIES=3
+
 # OpenAI
 OPENAI_API_KEY=sk-your-openai-api-key
 EMBEDDING_MODEL=text-embedding-3-small
