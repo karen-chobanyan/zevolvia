@@ -1,5 +1,4 @@
 import "reflect-metadata";
-import * as path from "path";
 import { DataSource, DataSourceOptions } from "typeorm";
 import * as dotenv from "dotenv";
 import { ConfigService } from "@nestjs/config";
