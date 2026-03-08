@@ -7,6 +7,7 @@
     "start:dev": "ts-node-dev --respawn --transpile-only src/main.ts",
     "build": "tsc -p tsconfig.build.json && cp src/modules/chat/system-prompt.md dist/modules/chat/",
     "lint": "eslint \"src/**/*.ts\" --max-warnings=0",
+    "test:notifications:e2e": "ts-node src/modules/notifications/notifications.e2e-test.ts",
     "typeorm": "env-cmd --no-override ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:generate",
     "migration:run": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:run",

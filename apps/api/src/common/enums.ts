@@ -58,6 +58,19 @@ export enum BookingStatus {
   NoShow = "no_show",
 }
 
+export enum NotificationChannel {
+  WebPush = "web_push",
+}
+
+export enum NotificationStatus {
+  Pending = "pending",
+  Processing = "processing",
+  Delivered = "delivered",
+  Failed = "failed",
+  Skipped = "skipped",
+  DeadLettered = "dead_lettered",
+}
+
 export enum SubscriptionStatus {
   Trialing = "trialing",
   Active = "active",
