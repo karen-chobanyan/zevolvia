@@ -21,6 +21,9 @@ prod:
 	$(DC) -f docker-compose.yml -f compose.prod.images.yml --profile prod pull
 	$(DC) -f docker-compose.yml -f compose.prod.images.yml --profile prod up -d --no-build
 
+prod-migrate:
+	docker compose -f docker-compose.yml -f compose.prod.images.yml --profile prod run --rm api-prod node -e "const { AppDataSource } = require('./apps/api/dist/database/data-source'); AppDataSource.initialize().then(() => AppDataSource.runMigrations()).then(() => process.exit(0)).catch(e => { console.error(e); process.exit(1); });"
+
 prod-down:
 	$(DC) -f docker-compose.yml -f compose.prod.images.yml --profile prod down
 
