@@ -118,6 +118,7 @@ const AppHeader: React.FC = () => {
           } items-center justify-between w-full gap-4 px-5 py-4 xl:flex shadow-theme-md xl:justify-end xl:px-0 xl:shadow-none`}
         >
           <div className="flex items-center gap-2 2xsm:gap-3">
+            <NotificationDropdown />
             <ThemeToggleButton />
           </div>
           <UserDropdown />
