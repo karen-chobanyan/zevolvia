@@ -6,6 +6,7 @@ export type E2EUserInput = {
   email: string;
   password: string;
   orgName: string;
+  country: string;
 };
 
 export function createE2EUser(prefix: string = "user"): E2EUserInput {
@@ -18,5 +19,6 @@ export function createE2EUser(prefix: string = "user"): E2EUserInput {
     email: `${prefix}.${suffix}@zevolvia.test`,
     password: "Password123!",
     orgName: `Zevolvia E2E Org ${suffix}`,
+    country: "US",
   };
 }

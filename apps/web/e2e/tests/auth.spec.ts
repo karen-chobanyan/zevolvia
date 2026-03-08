@@ -1,4 +1,4 @@
-import { test } from "../fixtures/test";
+import { expect, test } from "../fixtures/test";
 import { setupAuthenticatedSession, setupUnauthenticatedSession } from "../fixtures/auth";
 import { DashboardPage } from "../pages/dashboard-page";
 import { LoginPage } from "../pages/login-page";
@@ -69,6 +69,10 @@ test.describe("Authentication flows", () => {
 
     await signupPage.acceptTerms();
     await signupPage.submit();
+
+    expect(apiMock.getLastRegisterPayload()).toMatchObject({
+      country: user.country,
+    });
 
     await waitForPathname(page, "/dashboard");
     await dashboardPage.expectLoaded();
