@@ -19,7 +19,12 @@ export class ChatPage {
   }
 
   async sendMessage(text: string) {
-    await this.page.getByPlaceholder("Ask Zevolvia...").fill(text);
+    const input = this.page.getByPlaceholder("Ask Zevolvia...");
+
+    await input.click();
+    await input.fill("");
+    await input.type(text);
+
     await this.page.locator("button[type='submit']").click();
   }
 

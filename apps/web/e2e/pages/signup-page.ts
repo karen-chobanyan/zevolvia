@@ -22,11 +22,31 @@ export class SignupPage {
   }
 
   async fillForm(input: SignupInput) {
-    await this.page.getByPlaceholder("Ava").fill(input.firstName);
-    await this.page.getByPlaceholder("Martinez").fill(input.lastName);
-    await this.page.getByPlaceholder("Glow Studio").fill(input.orgName);
-    await this.page.getByPlaceholder("owner@glowstudio.com").fill(input.email);
-    await this.page.getByPlaceholder("Create a secure password").fill(input.password);
+    const firstNameInput = this.page.getByPlaceholder("Ava");
+    const lastNameInput = this.page.getByPlaceholder("Martinez");
+    const orgNameInput = this.page.getByPlaceholder("Glow Studio");
+    const emailInput = this.page.getByPlaceholder("owner@glowstudio.com");
+    const passwordInput = this.page.getByPlaceholder("Create a secure password");
+
+    await firstNameInput.click();
+    await firstNameInput.fill("");
+    await firstNameInput.type(input.firstName);
+
+    await lastNameInput.click();
+    await lastNameInput.fill("");
+    await lastNameInput.type(input.lastName);
+
+    await orgNameInput.click();
+    await orgNameInput.fill("");
+    await orgNameInput.type(input.orgName);
+
+    await emailInput.click();
+    await emailInput.fill("");
+    await emailInput.type(input.email);
+
+    await passwordInput.click();
+    await passwordInput.fill("");
+    await passwordInput.type(input.password);
   }
 
   async acceptTerms() {

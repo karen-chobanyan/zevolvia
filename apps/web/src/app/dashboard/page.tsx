@@ -1,14 +1,20 @@
 "use client";
 
-import { AlertCircle, BadgeCheck, CircleCheckBig, DollarSign, HandCoins } from "lucide-react";
+import {
+  AlertCircle,
+  BadgeCheck,
+  CalendarDays,
+  CircleCheckBig,
+  DollarSign,
+  HandCoins,
+  MessageSquareText,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "@/ui/Button";
 import Loading from "@/components/loading/Loading";
 import StatCard from "@/components/dashboard/StatCard";
 import SmartPulse from "@/components/dashboard/SmartPulse";
-import { ChatIcon } from "@/icons";
-import { getMe, logout } from "@/lib/auth";
 import { DashboardSummary, getDashboardSummary } from "@/lib/dashboard";
 
 type FocusStatus = "Confirmed" | "Checked In" | "Unconfirmed";
@@ -28,14 +34,12 @@ const focusStatusIcons = {
 export default function DashboardPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const [me, dashboardSummary] = await Promise.all([getMe(), getDashboardSummary()]);
-        setUserEmail(me.email);
+        const dashboardSummary = await getDashboardSummary();
         setSummary(dashboardSummary);
       } catch {
         router.replace("/login?next=/dashboard");
@@ -46,64 +50,48 @@ export default function DashboardPage() {
     load();
   }, [router]);
 
-  async function handleLogout() {
-    try {
-      await logout();
-    } finally {
-      router.replace("/login");
-    }
-  }
-
   if (loading) {
     return <Loading />;
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto w-full max-w-6xl px-6 py-10">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm text-gray-500">Welcome back</p>
-            <h1 className="text-3xl font-semibold text-gray-900">Zevolvia Dashboard</h1>
-            {userEmail && <p className="mt-1 text-sm text-gray-500">{userEmail}</p>}
-          </div>
-          <div className="flex items-center gap-3">
-            <Button variant="outline" onClick={handleLogout}>
-              Log out
-            </Button>
-            <Button>New booking</Button>
-          </div>
-        </div>
-
-        <div className="mt-8">
+      <div className="mx-auto w-full max-w-6xl px-6 py-8">
+        <div>
           <SmartPulse />
         </div>
 
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <StatCard
-            title="Projected Daily Revenue"
+            title="Revenue"
             value="$1,250"
-            subtitle="Based on today’s confirmed bookings"
+            subtitle="Projected daily total"
             icon={<DollarSign className="h-6 w-6" />}
           />
           <StatCard
-            title="Recovered Revenue"
+            title="Recovered"
             value="$450"
-            subtitle="Recovered from saved opportunities"
+            subtitle="Saved opportunities"
             icon={<HandCoins className="h-6 w-6" />}
           />
           <StatCard
-            title="Client follow-ups"
+            title="Follow-ups"
             value={String(summary?.widgets.chatMessages ?? 0)}
             subtitle="AI drafts ready"
-            icon={<ChatIcon className="h-6 w-6" />}
+            icon={<MessageSquareText className="h-6 w-6" />}
+          />
+          <StatCard
+            title="Bookings"
+            value={String(summary?.widgets.chatSessions ?? 0)}
+            subtitle="Upcoming this week"
+            icon={<CalendarDays className="h-6 w-6" />}
           />
         </div>
 
         <div className="mt-8 grid gap-6 lg:grid-cols-3">
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs lg:col-span-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-900">Today's focus</h2>
+              <h2 className="text-lg font-semibold text-gray-900">Today Focus</h2>
               <button className="text-sm text-brand-500">View full calendar</button>
             </div>
             <div className="mt-4 space-y-4">
@@ -154,7 +142,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-theme-xs">
-            <h2 className="text-lg font-semibold text-gray-900">AI quick wins</h2>
+            <h2 className="text-lg font-semibold text-gray-900">AI Quick Wins</h2>
             <p className="mt-1 text-sm text-gray-500">Automated suggestions ready to review.</p>
             <div className="mt-5 space-y-4">
               {[
