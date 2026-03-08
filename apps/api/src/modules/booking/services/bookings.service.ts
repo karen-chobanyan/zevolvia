@@ -4,8 +4,11 @@ import { Repository } from "typeorm";
 import { Booking } from "../entities/booking.entity";
 import { Service } from "../entities/service.entity";
 import { CreateBookingDto, UpdateBookingDto, CheckAvailabilityDto } from "../dto/booking.dto";
-import { BookingStatus } from "../../../common/enums";
+import { BookingStatus, MembershipStatus } from "../../../common/enums";
 import { Org } from "../../identity/entities/org.entity";
+import { Membership } from "../../identity/entities/membership.entity";
+import { Notification } from "../../notification/entities/notification.entity";
+import { NotificationService } from "../../notification/notification.service";
 import { isValidTimeZone, parseIncomingDateTimeAsOrgTime } from "../helpers/date-time.helper";
 import { NotificationsService } from "../../notifications/notifications.service";
 
@@ -38,6 +41,11 @@ export class BookingsService {
     @InjectRepository(Org)
     private readonly orgRepository: Repository<Org>,
     private readonly notificationsService: NotificationsService,
+    @InjectRepository(Membership)
+    private readonly membershipRepository: Repository<Membership>,
+    @InjectRepository(Notification)
+    private readonly notificationRepository: Repository<Notification>,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(orgId: string, dto: CreateBookingDto): Promise<Booking> {
@@ -77,6 +85,11 @@ export class BookingsService {
     const saved = await this.bookingRepository.save(booking);
     const createdBooking = await this.findById(saved.id, orgId);
     await this.notificationsService.queueBookingCreated(createdBooking, orgTimeZone);
+
+    if (saved.source === "sms") {
+      await this.createSmsBookingNotifications(saved.orgId, saved.id);
+    }
+
     return createdBooking;
   }
 
@@ -282,6 +295,32 @@ export class BookingsService {
 
     const count = await queryBuilder.getCount();
     return count > 0;
+  }
+
+  private async createSmsBookingNotifications(orgId: string, bookingId: string): Promise<void> {
+    const memberships = await this.membershipRepository.find({
+      where: { orgId, status: MembershipStatus.Active },
+      select: ["userId"],
+    });
+
+    if (memberships.length === 0) {
+      return;
+    }
+
+    const notifications = memberships.map((membership) =>
+      this.notificationRepository.create({
+        orgId,
+        userId: membership.userId,
+        bookingId,
+        type: "booking_created_sms",
+        title: "New SMS booking",
+        message: "A new booking was created by the SMS assistant.",
+        data: { bookingId, source: "sms" },
+      }),
+    );
+
+    const savedNotifications = await this.notificationRepository.save(notifications);
+    this.notificationService.broadcastNewNotifications(savedNotifications);
   }
 
   private async getOrgTimeZone(orgId: string): Promise<string | null> {
