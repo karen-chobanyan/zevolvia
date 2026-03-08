@@ -71,6 +71,7 @@ export class BookingsService {
       endTime,
       status: BookingStatus.Scheduled,
       notes: dto.notes ?? null,
+      source: dto.source?.trim() || "dashboard",
     });
 
     const saved = await this.bookingRepository.save(booking);

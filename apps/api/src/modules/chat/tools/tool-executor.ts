@@ -309,6 +309,7 @@ export class ChatToolExecutor {
       startTime: params.startTime,
       clientName: params.clientName,
       notes: params.notes,
+      source: "sms",
     });
 
     return {
