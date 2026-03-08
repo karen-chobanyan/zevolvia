@@ -91,8 +91,8 @@ export class ChatService {
 
     this.openai = new OpenAI({ apiKey });
     this.chatModel = this.configService.get<string>("CHAT_MODEL") || "gpt-5-mini";
-    const temp = Number(this.configService.get<string>("CHAT_TEMPERATURE") || "0.2");
-    this.chatTemperature = Number.isFinite(temp) ? Math.min(Math.max(temp, 0), 2) : 0.2;
+    const temp = Number(this.configService.get<string>("CHAT_TEMPERATURE") || "1");
+    this.chatTemperature = Number.isFinite(temp) ? Math.min(Math.max(temp, 0), 2) : 1;
     const maxTokens = this.configService.get<string>("CHAT_MAX_TOKENS");
     const parsedMaxTokens = maxTokens ? Number(maxTokens) : NaN;
     this.chatMaxTokens = Number.isFinite(parsedMaxTokens) ? parsedMaxTokens : undefined;
