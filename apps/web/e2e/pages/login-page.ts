@@ -13,8 +13,16 @@ export class LoginPage {
   }
 
   async fillCredentials(email: string, password: string) {
-    await this.page.getByPlaceholder("you@zevolvia.com").fill(email);
-    await this.page.getByPlaceholder("Enter your password").fill(password);
+    const emailInput = this.page.getByPlaceholder("you@zevolvia.com");
+    const passwordInput = this.page.getByPlaceholder("Enter your password");
+
+    await emailInput.click();
+    await emailInput.fill("");
+    await emailInput.type(email);
+
+    await passwordInput.click();
+    await passwordInput.fill("");
+    await passwordInput.type(password);
   }
 
   async submit() {
