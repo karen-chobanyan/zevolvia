@@ -52,6 +52,9 @@ export class Booking extends BaseModel {
   @Column({ type: "text", nullable: true })
   notes!: string | null;
 
+  @Column({ type: "text", default: "dashboard" })
+  source!: string;
+
   @Column({ name: "client_name", type: "text", nullable: true })
   clientName!: string | null; // For walk-ins without a client record
 }

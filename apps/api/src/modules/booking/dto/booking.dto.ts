@@ -8,6 +8,7 @@ export interface CreateBookingDto {
   serviceId: string;
   startTime: string;
   notes?: string;
+  source?: string;
 }
 
 export interface UpdateBookingDto {
