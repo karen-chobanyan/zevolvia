@@ -12,7 +12,7 @@ import { Booking } from "../../booking/entities/booking.entity";
 import { Org } from "../../identity/entities/org.entity";
 import { BookingCreatedNotificationPayload } from "../types";
 
-@Entity({ name: "notifications" })
+@Entity({ name: "notification_deliveries" })
 @Index(["orgId", "status"])
 @Index(["bookingId"])
 @Index(["orgId", "createdAt"])

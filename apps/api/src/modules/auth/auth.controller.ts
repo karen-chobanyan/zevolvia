@@ -27,6 +27,7 @@ type RegisterBody = {
   firstName?: string;
   lastName?: string;
   orgName?: string;
+  country?: string;
 };
 
 type AcceptInviteBody = {

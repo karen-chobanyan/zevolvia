@@ -70,4 +70,5 @@ deploy_server:
       cd "$DEPLOY_PATH"
       echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
       make prod-obs
+      make prod-migrate
       EOF

@@ -8,21 +8,24 @@ export class DashboardPage {
   }
 
   async expectLoaded() {
-    await expect(
-      this.page.getByRole("heading", { level: 1, name: "Zevolvia Dashboard" }),
-    ).toBeVisible();
+    await expect(this.page.getByRole("heading", { level: 2, name: "Smart Pulse" })).toBeVisible();
   }
 
   async expectSummaryVisible() {
-    await expect(this.page.getByText("Active team members")).toBeVisible();
-    await expect(this.page.getByText("Knowledge files")).toBeVisible();
-    await expect(this.page.getByText("Client follow-ups")).toBeVisible();
+    await expect(this.page.getByText("Revenue")).toBeVisible();
+    await expect(this.page.getByText("Recovered")).toBeVisible();
+    await expect(this.page.getByText("Follow-ups")).toBeVisible();
+    await expect(this.page.getByText("Bookings")).toBeVisible();
   }
 
   async clickLogout() {
-    const logoutButton = this.page.getByRole("button", { name: "Log out" });
-    await expect(logoutButton).toBeVisible();
-    await logoutButton.click({ force: true });
+    const userMenuButton = this.page.locator("button.dropdown-toggle").first();
+    await expect(userMenuButton).toBeVisible();
+    await userMenuButton.click();
+
+    const signOutLink = this.page.getByRole("link", { name: "Sign out" });
+    await expect(signOutLink).toBeVisible();
+    await signOutLink.click();
   }
 
   async openSidebarRoute(name: string) {

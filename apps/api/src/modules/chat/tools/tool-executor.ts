@@ -64,8 +64,8 @@ export class ChatToolExecutor {
       );
       return { toolCallId, functionName, result: JSON.stringify(result) };
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error occurred";
-      this.logger.error({ err: message, functionName, args }, "Tool execution failed");
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.error({ err: error, functionName, args }, "Tool execution failed");
       return {
         toolCallId,
         functionName,

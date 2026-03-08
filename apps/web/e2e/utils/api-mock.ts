@@ -62,6 +62,7 @@ export class ApiMock {
   private authState: AuthState = "unauthenticated";
   private nextLoginErrorMessage: string | null = null;
   private nextRegisterErrorMessage: string | null = null;
+  private lastRegisterPayload: Record<string, unknown> | null = null;
   private dashboardErrorMessage: string | null = null;
   private chatListErrorMessage: string | null = null;
   private chatListDelayMs = 0;
@@ -94,6 +95,10 @@ export class ApiMock {
 
   failNextRegister(message = "Registration failed") {
     this.nextRegisterErrorMessage = message;
+  }
+
+  getLastRegisterPayload() {
+    return this.lastRegisterPayload;
   }
 
   failDashboardSummary(message = "Failed to load dashboard summary") {
@@ -171,6 +176,8 @@ export class ApiMock {
     }
 
     if (method === "POST" && apiPath === "/auth/register") {
+      this.lastRegisterPayload = this.parseJson<Record<string, unknown>>(request.postData());
+
       if (this.nextRegisterErrorMessage) {
         const message = this.nextRegisterErrorMessage;
         this.nextRegisterErrorMessage = null;

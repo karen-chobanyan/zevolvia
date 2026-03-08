@@ -17,6 +17,7 @@ import { RefreshToken } from "./entities/refresh-token.entity";
 import { Permission } from "../identity/entities/permission.entity";
 import { EmailService } from "../email/email.service";
 import { PasswordResetToken } from "./entities/password-reset-token.entity";
+import { ISO_COUNTRY_CODE_SET } from "../../common/constants/iso-country-codes";
 
 type RegisterInput = {
   email: string;
@@ -24,6 +25,7 @@ type RegisterInput = {
   firstName?: string;
   lastName?: string;
   orgName?: string;
+  country?: string;
 };
 
 export type AuthTokens = {
@@ -121,8 +123,13 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(input.password, 12);
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
     const orgName = input.orgName?.trim() || name || "Zevolvia Workspace";
+    const country = (input.country?.trim().toUpperCase() || "US") as string;
 
-    this.logger.debug({ email, orgName }, "Creating user and organization");
+    if (!ISO_COUNTRY_CODE_SET.has(country)) {
+      throw new BadRequestException("Country must be a valid ISO country code");
+    }
+
+    this.logger.debug({ email, orgName, country }, "Creating user and organization");
 
     return this.userRepo.manager.transaction(async (manager) => {
       const orgRepo = manager.withRepository(this.orgRepo);
@@ -133,7 +140,7 @@ export class AuthService {
       const rolePermissionRepo = manager.withRepository(this.rolePermissionRepo);
 
       const slug = await this.createUniqueSlug(orgName, orgRepo);
-      const org = orgRepo.create({ name: orgName, slug });
+      const org = orgRepo.create({ name: orgName, slug, country });
       await orgRepo.save(org);
 
       const user = userRepo.create({ email, name, passwordHash });

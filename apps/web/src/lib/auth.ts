@@ -12,6 +12,7 @@ export type RegisterInput = {
   firstName?: string;
   lastName?: string;
   orgName?: string;
+  country: string;
 };
 
 export type MeResponse = {
