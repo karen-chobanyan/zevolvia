@@ -122,7 +122,8 @@ export class AuthService {
 
     const passwordHash = await bcrypt.hash(input.password, 12);
     const name = [input.firstName, input.lastName].filter(Boolean).join(" ").trim() || null;
-    const orgName = input.orgName?.trim() || name || "Zevolvia Workspace";
+    const providedOrgName = input.orgName?.trim();
+    const orgName = providedOrgName || name || "Zevolvia Workspace";
     const country = (input.country?.trim().toUpperCase() || "US") as string;
 
     if (!ISO_COUNTRY_CODE_SET.has(country)) {
@@ -131,7 +132,7 @@ export class AuthService {
 
     this.logger.debug({ email, orgName, country }, "Creating user and organization");
 
-    return this.userRepo.manager.transaction(async (manager) => {
+    const { user, org } = await this.userRepo.manager.transaction(async (manager) => {
       const orgRepo = manager.withRepository(this.orgRepo);
       const roleRepo = manager.withRepository(this.roleRepo);
       const userRepo = manager.withRepository(this.userRepo);
@@ -205,8 +206,15 @@ export class AuthService {
         "User registered successfully",
       );
 
-      return user;
+      return { user, org };
     });
+
+    await this.sendNewUserNotification({
+      user,
+      orgName: providedOrgName ? org.name : undefined,
+    });
+
+    return user;
   }
 
   async forgotPassword(email: string): Promise<void> {
@@ -568,6 +576,52 @@ export class AuthService {
   private getPasswordResetTokenMaxAgeMs(): number {
     const expiresIn = this.configService.get<string>("PASSWORD_RESET_EXPIRES_IN") || "30m";
     return this.parseDurationToMs(expiresIn, 30 * 60 * 1000);
+  }
+
+  private async sendNewUserNotification(params: { user: User; orgName?: string }): Promise<void> {
+    const notifyEmail = this.configService.get<string>("NEW_USER_NOTIFY_EMAIL")?.trim();
+    if (!notifyEmail) {
+      return;
+    }
+
+    const { user, orgName } = params;
+    const signUpTime = (user.createdAt || new Date()).toISOString();
+
+    const textLines = [
+      "A new user has registered in Zevolvia.",
+      "",
+      `Name: ${user.name || "N/A"}`,
+      `Email: ${user.email}`,
+      `Signup time: ${signUpTime}`,
+    ];
+
+    if (orgName) {
+      textLines.push(`Org: ${orgName}`);
+    }
+
+    const html = `
+      <p>A new user has registered in Zevolvia.</p>
+      <ul>
+        <li><strong>Name:</strong> ${user.name || "N/A"}</li>
+        <li><strong>Email:</strong> ${user.email}</li>
+        <li><strong>Signup time:</strong> ${signUpTime}</li>
+        ${orgName ? `<li><strong>Org:</strong> ${orgName}</li>` : ""}
+      </ul>
+    `;
+
+    const sent = await this.emailService.sendEmail({
+      to: notifyEmail,
+      subject: "New user registered — Zevolvia",
+      html,
+      text: textLines.join("\n"),
+    });
+
+    if (!sent) {
+      this.logger.error(
+        { userId: user.id, email: user.email, notifyEmail },
+        "Failed to send new user notification email",
+      );
+    }
   }
 
   private parseDurationToMs(value: string, fallbackMs: number): number {
