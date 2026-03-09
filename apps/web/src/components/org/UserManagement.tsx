@@ -74,6 +74,7 @@ export default function UserManagement() {
   const [members, setMembers] = useState<Member[]>([]);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
+  const [inviteRoles, setInviteRoles] = useState<Role[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [staffServices, setStaffServices] = useState<StaffWithServices[]>([]);
   const [loading, setLoading] = useState(true);
@@ -99,22 +100,37 @@ export default function UserManagement() {
     setLoading(true);
     setError(null);
     try {
-      const [membersRes, invitesRes, rolesRes, servicesRes, staffServicesRes] = await Promise.all([
-        api.get("/org/members"),
-        api.get("/org/invites"),
-        api.get("/org/roles"),
-        api.get("/services"),
-        api.get("/staff-services"),
-      ]);
-      setMembers(Array.isArray(membersRes.data) ? membersRes.data : []);
+      const [membersRes, invitesRes, rolesRes, servicesRes, staffServicesRes, meRes] =
+        await Promise.all([
+          api.get("/org/members"),
+          api.get("/org/invites"),
+          api.get("/org/roles"),
+          api.get("/services"),
+          api.get("/staff-services"),
+          api.get("/auth/me"),
+        ]);
+      const membersData = Array.isArray(membersRes.data) ? membersRes.data : [];
+      setMembers(membersData);
       setInvites(Array.isArray(invitesRes.data) ? invitesRes.data : []);
       const rolesData = Array.isArray(rolesRes.data) ? rolesRes.data : [];
       setRoles(rolesData);
+      const currentUserId = meRes?.data?.sub;
+      const currentMembership = membersData.find(
+        (member: Member) => member.userId === currentUserId,
+      );
+      const canAssignOwner = currentMembership?.role === "Owner";
+      const inviteRolesData = canAssignOwner
+        ? rolesData
+        : rolesData.filter((role: Role) => role.name !== "Owner");
+      setInviteRoles(inviteRolesData);
       setServices(Array.isArray(servicesRes.data) ? servicesRes.data : []);
       setStaffServices(Array.isArray(staffServicesRes.data) ? staffServicesRes.data : []);
-      if (rolesData.length > 0 && !inviteRole) {
-        const memberRole = rolesData.find((r: Role) => r.name === "Member");
-        setInviteRole(memberRole?.name || rolesData[0].name);
+      if (inviteRolesData.length > 0) {
+        const selectedRoleAllowed = inviteRolesData.some((role: Role) => role.name === inviteRole);
+        if (!selectedRoleAllowed) {
+          const memberRole = inviteRolesData.find((r: Role) => r.name === "Member");
+          setInviteRole(memberRole?.name || inviteRolesData[0].name);
+        }
       }
     } catch (err) {
       setError(getErrorMessage(err, "Failed to load users."));
@@ -134,6 +150,10 @@ export default function UserManagement() {
     }
     if (!inviteRole) {
       setInviteMessage({ type: "error", text: "Please select a role." });
+      return;
+    }
+    if (!inviteRoles.some((role) => role.name === inviteRole)) {
+      setInviteMessage({ type: "error", text: "You cannot assign this role." });
       return;
     }
     setInviteSubmitting(true);
@@ -286,7 +306,7 @@ export default function UserManagement() {
                 onChange={(event) => setInviteRole(event.target.value)}
                 className="h-11 w-full rounded-lg border border-gray-200 bg-transparent px-3 text-sm text-gray-800 shadow-theme-xs focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-700 dark:bg-gray-900 dark:text-white/90"
               >
-                {roles.map((role) => (
+                {inviteRoles.map((role) => (
                   <option key={role.id} value={role.name}>
                     {role.name}
                   </option>

@@ -3,6 +3,7 @@ import {
   NotFoundException,
   BadRequestException,
   ConflictException,
+  ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
@@ -169,6 +170,17 @@ export class OrgService {
 
     if (!role) {
       throw new NotFoundException(`Role "${dto.roleKey}" not found`);
+    }
+
+    if (dto.roleKey === "Owner") {
+      const inviterMembership = await this.membershipRepository.findOne({
+        where: { orgId, userId: inviterId, status: MembershipStatus.Active },
+        relations: ["role"],
+      });
+
+      if (!inviterMembership || inviterMembership.role?.name !== "Owner") {
+        throw new ForbiddenException("Only organization owners can invite users as Owner");
+      }
     }
 
     // Get inviter and org info for email
