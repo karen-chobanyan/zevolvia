@@ -127,6 +127,21 @@ async function runSendsNotificationWhenConfigured(): Promise<void> {
   assert.match(sentEmails[0].text, /Org: Acme Salon/);
 }
 
+async function runIncludesDerivedOrgWhenOrgNameMissing(): Promise<void> {
+  const { service, sentEmails } = await buildAuthService("ops@zevolvia.test");
+
+  await service.register({
+    email: "derived-org.user@zevolvia.test",
+    password: "StrongPass123!",
+    firstName: "Derived",
+    lastName: "Org",
+    country: "US",
+  });
+
+  assert.equal(sentEmails.length, 1);
+  assert.match(sentEmails[0].text, /Org: Derived Org/);
+}
+
 async function runSkipsWhenRecipientMissing(): Promise<void> {
   const { service, sentEmails } = await buildAuthService("   ");
 
@@ -144,6 +159,9 @@ async function runSkipsWhenRecipientMissing(): Promise<void> {
 async function main(): Promise<void> {
   await runSendsNotificationWhenConfigured();
   process.stdout.write("ok - sends new user notification when configured\n");
+
+  await runIncludesDerivedOrgWhenOrgNameMissing();
+  process.stdout.write("ok - includes derived org when orgName is missing\n");
 
   await runSkipsWhenRecipientMissing();
   process.stdout.write("ok - skips notification when NEW_USER_NOTIFY_EMAIL is empty\n");

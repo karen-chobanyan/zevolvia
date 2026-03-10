@@ -211,7 +211,7 @@ export class AuthService {
 
     await this.sendNewUserNotification({
       user,
-      orgName: providedOrgName ? org.name : undefined,
+      orgName: org.name,
     });
 
     return user;
