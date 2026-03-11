@@ -87,7 +87,7 @@ export class BookingsService {
     await this.notificationsService.queueBookingCreated(createdBooking, orgTimeZone);
 
     if (saved.source === "sms") {
-      await this.createSmsBookingNotifications(saved.orgId, saved.id);
+      await this.createSmsBookingNotifications(createdBooking, orgTimeZone);
     }
 
     return createdBooking;
@@ -297,9 +297,12 @@ export class BookingsService {
     return count > 0;
   }
 
-  private async createSmsBookingNotifications(orgId: string, bookingId: string): Promise<void> {
+  private async createSmsBookingNotifications(
+    booking: Booking,
+    orgTimeZone: string | null,
+  ): Promise<void> {
     const memberships = await this.membershipRepository.find({
-      where: { orgId, status: MembershipStatus.Active },
+      where: { orgId: booking.orgId, status: MembershipStatus.Active },
       select: ["userId"],
     });
 
@@ -307,20 +310,49 @@ export class BookingsService {
       return;
     }
 
+    const clientName =
+      booking.client?.name?.trim() || booking.clientName?.trim() || "Walk-in client";
+    const serviceName = booking.service?.name?.trim() || "Service";
+    const staffName = booking.staff?.name?.trim() || "Staff member";
+    const formattedStart = this.formatBookingStart(booking.startTime, orgTimeZone);
+
     const notifications = memberships.map((membership) =>
       this.notificationRepository.create({
-        orgId,
+        orgId: booking.orgId,
         userId: membership.userId,
-        bookingId,
+        bookingId: booking.id,
         type: "booking_created_sms",
-        title: "New SMS booking",
-        message: "A new booking was created by the SMS assistant.",
-        data: { bookingId, source: "sms" },
+        title: "New chat booking",
+        message: `${clientName} booked ${serviceName} with ${staffName} at ${formattedStart}.`,
+        data: {
+          bookingId: booking.id,
+          source: "sms",
+          clientName,
+          serviceName,
+          staffName,
+          startTime: booking.startTime.toISOString(),
+          timeZone: orgTimeZone,
+        },
       }),
     );
 
     const savedNotifications = await this.notificationRepository.save(notifications);
     this.notificationService.broadcastNewNotifications(savedNotifications);
+  }
+
+  private formatBookingStart(startTime: Date, timeZone: string | null): string {
+    try {
+      return new Intl.DateTimeFormat("en-US", {
+        timeZone: timeZone ?? undefined,
+        month: "short",
+        day: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(startTime);
+    } catch {
+      return startTime.toISOString();
+    }
   }
 
   private async getOrgTimeZone(orgId: string): Promise<string | null> {
