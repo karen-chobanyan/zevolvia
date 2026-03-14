@@ -10,13 +10,17 @@ type DateTimeParts = {
   millisecond: number;
 };
 
+const TIME_ZONE_SUFFIX_RE = /(?:Z|[+-]\d{2}:\d{2})$/i;
+
 export const parseIncomingDateTimeAsOrgTime = (value: string, orgTimeZone: string | null): Date => {
-  const parts = extractDateTimeParts(value);
-  if (parts && orgTimeZone) {
+  const trimmed = value.trim();
+  const hasExplicitTimeZone = TIME_ZONE_SUFFIX_RE.test(trimmed);
+  const parts = extractDateTimeParts(trimmed);
+  if (parts && orgTimeZone && !hasExplicitTimeZone) {
     return toUtcFromZonedLocal(parts, orgTimeZone);
   }
 
-  const parsed = new Date(value);
+  const parsed = new Date(trimmed);
   if (Number.isNaN(parsed.getTime())) {
     throw new BadRequestException(`Invalid date-time value: ${value}`);
   }
