@@ -4,7 +4,16 @@ node_modules
 dist
 .env
 .env.*
+!.env.example
+!.env.*.example
+!**/.env.example
+!**/.env.*.example
 .DS_Store
+*.tsbuildinfo
+apps/web/root@kd
+apps/web/zevolvia_dump.sql
+apps/web/zevolvia_dump.sqlcat
+apps/web/zevolvia-web@0.1.0
 
 
 #Ignore vscode AI rules

@@ -213,7 +213,7 @@ zevolvia/
    ```bash
    git clone git@gitlab.com:ateroproducts/zevolvia.git
    cd zevolvia
-   cp apps/api/.env.example apps/api/.env.docker
+   cp apps/api/.env.docker.example apps/api/.env.docker
    cp apps/web/.env.example apps/web/.env
    ```
 
