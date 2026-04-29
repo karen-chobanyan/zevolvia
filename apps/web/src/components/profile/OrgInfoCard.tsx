@@ -14,6 +14,12 @@ export type OrgInfo = {
   timeZone?: string | null;
   workingHoursStart?: string | null;
   workingHoursEnd?: string | null;
+  twilioAccountSid?: string | null;
+  twilioMessagingServiceSid?: string | null;
+  twilioAuthTokenConfigured?: boolean;
+  telegramBotUsername?: string | null;
+  telegramBotTokenConfigured?: boolean;
+  telegramWebhookSecretConfigured?: boolean;
   ownerUserId?: string | null;
   createdAt?: string | Date | null;
 };
@@ -53,8 +59,16 @@ type OrgInfoCardProps = {
     timeZone?: string | null;
     workingHoursStart?: string;
     workingHoursEnd?: string;
+    twilioAccountSid?: string | null;
+    twilioAuthToken?: string | null;
+    twilioMessagingServiceSid?: string | null;
+    telegramBotToken?: string | null;
+    telegramBotUsername?: string | null;
+    telegramWebhookSecret?: string | null;
   }) => Promise<void>;
 };
+
+const SECRET_PLACEHOLDER = "********";
 
 function getDisplayValue(value?: string | null) {
   const trimmed = value?.trim();
@@ -94,6 +108,12 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
     timeZone: "",
     workingHoursStart: "",
     workingHoursEnd: "",
+    twilioAccountSid: "",
+    twilioAuthToken: "",
+    twilioMessagingServiceSid: "",
+    telegramBotToken: "",
+    telegramBotUsername: "",
+    telegramWebhookSecret: "",
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -105,6 +125,12 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
       timeZone: org?.timeZone ?? "",
       workingHoursStart: org?.workingHoursStart ?? "09:00",
       workingHoursEnd: org?.workingHoursEnd ?? "20:00",
+      twilioAccountSid: org?.twilioAccountSid ?? "",
+      twilioAuthToken: org?.twilioAuthTokenConfigured ? SECRET_PLACEHOLDER : "",
+      twilioMessagingServiceSid: org?.twilioMessagingServiceSid ?? "",
+      telegramBotToken: org?.telegramBotTokenConfigured ? SECRET_PLACEHOLDER : "",
+      telegramBotUsername: org?.telegramBotUsername ?? "",
+      telegramWebhookSecret: org?.telegramWebhookSecretConfigured ? SECRET_PLACEHOLDER : "",
     });
   }, [org]);
 
@@ -117,6 +143,12 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
     const nextTimeZone = form.timeZone.trim();
     const nextWorkingHoursStart = form.workingHoursStart.trim();
     const nextWorkingHoursEnd = form.workingHoursEnd.trim();
+    const nextTwilioAccountSid = form.twilioAccountSid.trim();
+    const nextTwilioAuthToken = form.twilioAuthToken.trim();
+    const nextTwilioMessagingServiceSid = form.twilioMessagingServiceSid.trim();
+    const nextTelegramBotToken = form.telegramBotToken.trim();
+    const nextTelegramBotUsername = form.telegramBotUsername.trim();
+    const nextTelegramWebhookSecret = form.telegramWebhookSecret.trim();
     setSaving(true);
     setError(null);
     try {
@@ -126,6 +158,12 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
         timeZone: nextTimeZone || null,
         workingHoursStart: nextWorkingHoursStart || undefined,
         workingHoursEnd: nextWorkingHoursEnd || undefined,
+        twilioAccountSid: nextTwilioAccountSid || null,
+        twilioAuthToken: nextTwilioAuthToken || null,
+        twilioMessagingServiceSid: nextTwilioMessagingServiceSid || null,
+        telegramBotToken: nextTelegramBotToken || null,
+        telegramBotUsername: nextTelegramBotUsername || null,
+        telegramWebhookSecret: nextTelegramWebhookSecret || null,
       });
       closeModal();
     } catch (err: any) {
@@ -209,6 +247,28 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90 break-all">
                 {getDisplayValue(org?.id)}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                WhatsApp/Twilio
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {org?.twilioAccountSid || org?.twilioAuthTokenConfigured
+                  ? "Configured"
+                  : "Not configured"}
+              </p>
+            </div>
+
+            <div>
+              <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
+                Telegram
+              </p>
+              <p className="text-sm font-medium text-gray-800 dark:text-white/90">
+                {org?.telegramBotUsername || org?.telegramBotTokenConfigured
+                  ? "Configured"
+                  : "Not configured"}
               </p>
             </div>
           </div>
@@ -316,6 +376,85 @@ export default function OrgInfoCard({ org, membership, canEdit, onSave }: OrgInf
                   value={form.workingHoursEnd}
                   onChange={(event) =>
                     setForm((prev) => ({ ...prev, workingHoursEnd: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-5 dark:border-gray-800">
+                <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">
+                  WhatsApp / Twilio
+                </h5>
+              </div>
+
+              <div>
+                <Label>Twilio Account SID</Label>
+                <Input
+                  type="text"
+                  value={form.twilioAccountSid}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, twilioAccountSid: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Twilio Auth Token</Label>
+                <Input
+                  type="password"
+                  value={form.twilioAuthToken}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, twilioAuthToken: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Twilio Messaging Service SID</Label>
+                <Input
+                  type="text"
+                  value={form.twilioMessagingServiceSid}
+                  onChange={(event) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      twilioMessagingServiceSid: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+
+              <div className="border-t border-gray-200 pt-5 dark:border-gray-800">
+                <h5 className="text-sm font-semibold text-gray-800 dark:text-white/90">Telegram</h5>
+              </div>
+
+              <div>
+                <Label>Telegram Bot Token</Label>
+                <Input
+                  type="password"
+                  value={form.telegramBotToken}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, telegramBotToken: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Telegram Bot Username</Label>
+                <Input
+                  type="text"
+                  value={form.telegramBotUsername}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, telegramBotUsername: event.target.value }))
+                  }
+                />
+              </div>
+
+              <div>
+                <Label>Telegram Webhook Secret</Label>
+                <Input
+                  type="password"
+                  value={form.telegramWebhookSecret}
+                  onChange={(event) =>
+                    setForm((prev) => ({ ...prev, telegramWebhookSecret: event.target.value }))
                   }
                 />
               </div>

@@ -101,13 +101,17 @@ export class ChatToolExecutor {
         return this.handleGetWorkingHours(orgId, args.staff_id as string | undefined);
 
       case "create_booking":
-        return this.handleCreateBooking(orgId, {
-          staffId: args.staff_id as string,
-          serviceId: args.service_id as string,
-          startTime: args.start_time as string,
-          clientName: args.client_name as string,
-          notes: args.notes as string | undefined,
-        });
+        return this.handleCreateBooking(
+          orgId,
+          {
+            staffId: args.staff_id as string,
+            serviceId: args.service_id as string,
+            startTime: args.start_time as string,
+            clientName: args.client_name as string,
+            notes: args.notes as string | undefined,
+          },
+          context,
+        );
 
       default:
         return { error: `Unknown function: ${functionName}` };
@@ -302,6 +306,7 @@ export class ChatToolExecutor {
       clientName: string;
       notes?: string;
     },
+    context: ToolExecutionContext,
   ) {
     const booking = await this.bookingsService.create(orgId, {
       staffId: params.staffId,
@@ -309,7 +314,7 @@ export class ChatToolExecutor {
       startTime: params.startTime,
       clientName: params.clientName,
       notes: params.notes,
-      source: "sms",
+      source: context.source?.trim() || "sms",
     });
 
     return {

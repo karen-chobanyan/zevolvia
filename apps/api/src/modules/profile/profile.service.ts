@@ -26,6 +26,8 @@ const PROFILE_FIELDS = [
   "timeZone",
 ] as const;
 
+const ORG_SECRET_PLACEHOLDER = "********";
+
 @Injectable()
 export class ProfileService {
   constructor(
@@ -48,6 +50,37 @@ export class ProfileService {
     }
     const trimmed = value?.trim();
     return trimmed ? trimmed : null;
+  }
+
+  private normalizeSecret(value?: string | null) {
+    if (value === undefined) {
+      return undefined;
+    }
+    const normalized = this.normalizeOptional(value);
+    if (normalized === ORG_SECRET_PLACEHOLDER) {
+      return undefined;
+    }
+    return normalized;
+  }
+
+  private buildOrgPayload(org: Org, ownerUserId: string | null) {
+    return {
+      id: org.id,
+      name: org.name,
+      slug: org.slug,
+      phone: org.phone,
+      timeZone: org.timeZone,
+      workingHoursStart: this.formatTime(org.workingHoursStart),
+      workingHoursEnd: this.formatTime(org.workingHoursEnd),
+      twilioAccountSid: org.twilioAccountSid,
+      twilioMessagingServiceSid: org.twilioMessagingServiceSid,
+      twilioAuthTokenConfigured: Boolean(org.twilioAuthToken),
+      telegramBotUsername: org.telegramBotUsername,
+      telegramBotTokenConfigured: Boolean(org.telegramBotToken),
+      telegramWebhookSecretConfigured: Boolean(org.telegramWebhookSecret),
+      ownerUserId,
+      createdAt: org.createdAt,
+    };
   }
 
   private normalizeOrgPhone(value?: string | null) {
@@ -192,17 +225,7 @@ export class ProfileService {
         email: user.email,
         profile: profilePayload,
       },
-      org: {
-        id: org.id,
-        name: org.name,
-        slug: org.slug,
-        phone: org.phone,
-        timeZone: org.timeZone,
-        workingHoursStart: this.formatTime(org.workingHoursStart),
-        workingHoursEnd: this.formatTime(org.workingHoursEnd),
-        ownerUserId,
-        createdAt: org.createdAt,
-      },
+      org: this.buildOrgPayload(org, ownerUserId),
       membership: {
         role: membership.role?.name ?? null,
         joinedAt: membership.createdAt,
@@ -372,6 +395,31 @@ export class ProfileService {
       updates.workingHoursEnd = normalized;
     }
 
+    const twilioAccountSid = this.normalizeOptional(dto.twilioAccountSid);
+    if (twilioAccountSid !== undefined) {
+      updates.twilioAccountSid = twilioAccountSid;
+    }
+    const twilioAuthToken = this.normalizeSecret(dto.twilioAuthToken);
+    if (twilioAuthToken !== undefined) {
+      updates.twilioAuthToken = twilioAuthToken;
+    }
+    const twilioMessagingServiceSid = this.normalizeOptional(dto.twilioMessagingServiceSid);
+    if (twilioMessagingServiceSid !== undefined) {
+      updates.twilioMessagingServiceSid = twilioMessagingServiceSid;
+    }
+    const telegramBotToken = this.normalizeSecret(dto.telegramBotToken);
+    if (telegramBotToken !== undefined) {
+      updates.telegramBotToken = telegramBotToken;
+    }
+    const telegramBotUsername = this.normalizeOptional(dto.telegramBotUsername);
+    if (telegramBotUsername !== undefined) {
+      updates.telegramBotUsername = telegramBotUsername?.replace(/^@/, "") ?? null;
+    }
+    const telegramWebhookSecret = this.normalizeSecret(dto.telegramWebhookSecret);
+    if (telegramWebhookSecret !== undefined) {
+      updates.telegramWebhookSecret = telegramWebhookSecret;
+    }
+
     if (!Object.keys(updates).length) {
       throw new BadRequestException("At least one field is required");
     }
@@ -384,17 +432,7 @@ export class ProfileService {
     const ownerUserId = await this.getOwnerUserId(orgId);
 
     return {
-      org: {
-        id: updatedOrg.id,
-        name: updatedOrg.name,
-        slug: updatedOrg.slug,
-        phone: updatedOrg.phone,
-        timeZone: updatedOrg.timeZone,
-        workingHoursStart: this.formatTime(updatedOrg.workingHoursStart),
-        workingHoursEnd: this.formatTime(updatedOrg.workingHoursEnd),
-        ownerUserId,
-        createdAt: updatedOrg.createdAt,
-      },
+      org: this.buildOrgPayload(updatedOrg, ownerUserId),
     };
   }
 }

@@ -13,7 +13,7 @@ export const heroContent = {
   eyebrow: "The AI booking system built for salons",
   headline: "Your clients text. Zevolvia books. You grow.",
   subheadline:
-    "The complete AI booking platform for salons — handle appointments, reminders, and client management via SMS. Works on its own or with the tools you already use.",
+    "The complete AI booking platform for salons — handle appointments, reminders, and client management via SMS, WhatsApp, and Telegram. Works on its own or with the tools you already use.",
   ctaText: "Start Your Free Trial",
   ctaSubtext: "Free for 30 days. No credit card. No contracts.",
   secondaryCtaText: "See how it works ↓",
@@ -24,7 +24,7 @@ export const heroContent = {
       icon: "plug",
       text: "Integrates with Vagaro, GlossGenius, Boulevard, Google Calendar & more",
     },
-    { icon: "message", text: "Clients book via text — 24/7, even after hours" },
+    { icon: "message", text: "Clients book via SMS, WhatsApp, or Telegram — 24/7" },
     { icon: "zap", text: "Live in 15 minutes, free for 30 days" },
   ],
 };
@@ -116,9 +116,9 @@ export const howItWorksSteps = [
 export const features = [
   {
     icon: MessageCircle,
-    title: "SMS-native booking",
+    title: "Messaging-native booking",
     description:
-      "Clients book in one text thread, like texting a friend. No app, no login, no friction.",
+      "Clients book in one thread across SMS, WhatsApp, or Telegram. No app, no login, no friction.",
   },
   {
     icon: Scissors,
@@ -165,7 +165,7 @@ export const features = [
 
 export const comparisonRows = [
   {
-    feature: "SMS-native conversation",
+    feature: "SMS, WhatsApp, and Telegram conversation",
     zevolvia: "Native",
     enterprise: "Add-on",
     voiceAi: "Voice-first",
@@ -237,7 +237,7 @@ export const pricingContent = {
     cta: "Start Your Free Trial",
     features: [
       "Full AI booking system",
-      "SMS booking & reminders",
+      "SMS, WhatsApp, and Telegram booking",
       "Client management",
       "Smart staff matching",
       "Real-time calendar sync",

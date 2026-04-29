@@ -86,8 +86,8 @@ export class BookingsService {
     const createdBooking = await this.findById(saved.id, orgId);
     await this.notificationsService.queueBookingCreated(createdBooking, orgTimeZone);
 
-    if (saved.source === "sms") {
-      await this.createSmsBookingNotifications(createdBooking, orgTimeZone);
+    if (["sms", "whatsapp", "telegram"].includes(saved.source)) {
+      await this.createChatBookingNotifications(createdBooking, orgTimeZone, saved.source);
     }
 
     return createdBooking;
@@ -297,9 +297,10 @@ export class BookingsService {
     return count > 0;
   }
 
-  private async createSmsBookingNotifications(
+  private async createChatBookingNotifications(
     booking: Booking,
     orgTimeZone: string | null,
+    source: string,
   ): Promise<void> {
     const memberships = await this.membershipRepository.find({
       where: { orgId: booking.orgId, status: MembershipStatus.Active },
@@ -321,12 +322,12 @@ export class BookingsService {
         orgId: booking.orgId,
         userId: membership.userId,
         bookingId: booking.id,
-        type: "booking_created_sms",
+        type: `booking_created_${source}`,
         title: "New chat booking",
         message: `${clientName} booked ${serviceName} with ${staffName} at ${formattedStart}.`,
         data: {
           bookingId: booking.id,
-          source: "sms",
+          source,
           clientName,
           serviceName,
           staffName,

@@ -10,7 +10,7 @@ import { Client } from "../../booking/entities/client.entity";
 @Index(["orgId", "source", "updatedAt"])
 @Index(["orgId", "source", "externalThreadKey"], {
   unique: true,
-  where: `"source" = 'sms' AND "external_thread_key" IS NOT NULL`,
+  where: `"source" IN ('sms', 'whatsapp', 'telegram') AND "external_thread_key" IS NOT NULL`,
 })
 export class ChatSession extends BaseModel {
   @Column({ name: "org_id", type: "uuid" })

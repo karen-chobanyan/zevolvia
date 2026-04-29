@@ -272,6 +272,7 @@ export class ChatService {
       this.logger.info({ sessionId, orgId, toolCount: BOOKING_TOOLS.length }, "Starting tool loop");
       const result = await this.executeToolLoop(messages, orgId, {
         timeZone,
+        source: session.source,
       });
       answer = result.answer;
       usage = result.usage;
@@ -318,7 +319,7 @@ export class ChatService {
   private async executeToolLoop(
     initialMessages: ReadonlyArray<OpenAI.ChatCompletionMessageParam>,
     orgId: string,
-    toolContext: { timeZone?: string },
+    toolContext: { timeZone?: string; source?: string },
   ): Promise<{
     answer: string;
     usage?: OpenAI.CompletionUsage;
@@ -430,6 +431,7 @@ export class ChatService {
           return this.toolExecutor.execute(tc.id, tc.function.name, args, {
             orgId,
             timeZone: toolContext.timeZone,
+            source: toolContext.source,
           });
         }),
       );

@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, Req, Res } from "@nestjs/common";
+import { Body, Controller, HttpCode, Param, Post, Req, Res } from "@nestjs/common";
 import type { Request, Response } from "express";
 import { SmsService } from "./sms.service";
 
@@ -28,5 +28,18 @@ export class SmsController {
     await this.smsService.handleTwilioStatusCallback(body, req);
     res.type("text/plain");
     return "ok";
+  }
+
+  @Post("telegram/:orgId")
+  @HttpCode(200)
+  async handleTelegramWebhook(
+    @Param("orgId") orgId: string,
+    @Body() body: Record<string, unknown>,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    await this.smsService.handleIncomingTelegram(orgId, body, req);
+    res.type("application/json");
+    return { ok: true };
   }
 }

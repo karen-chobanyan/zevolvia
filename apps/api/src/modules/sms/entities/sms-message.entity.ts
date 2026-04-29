@@ -20,6 +20,9 @@ export class SmsMessage extends BaseModel {
   @Column({ name: "to_number", type: "text" })
   toNumber!: string;
 
+  @Column({ type: "text", default: "sms" })
+  channel!: "sms" | "whatsapp" | "telegram";
+
   @Column({ name: "client_id", type: "uuid", nullable: true })
   clientId!: string | null;
 

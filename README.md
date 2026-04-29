@@ -28,7 +28,7 @@ Zevolvia is a full-stack monorepo application that helps beauty salons manage th
 - **AI-Powered Follow-ups**: Automated client communication suggestions
 - **Document Management**: Upload, organize, and search through documents
 - **RAG System**: Semantic search using OpenAI embeddings and pgvector
-- **SMS Intake**: Capture inbound client texts via Twilio webhooks
+- **Messaging Intake**: Capture inbound client requests via SMS, WhatsApp, and Telegram
 - **Multi-Tenant Architecture**: Organization-based data isolation
 - **Role-Based Access Control**: Granular permissions system
 - **Real-time Processing**: Async job queue for heavy operations
@@ -51,7 +51,7 @@ Zevolvia is a full-stack monorepo application that helps beauty salons manage th
 │                           API Layer                                  │
 │  ┌─────────────────────────────────────────────────────────────┐   │
 │  │                    NestJS API (3001)                         │   │
-│  │    Auth │ Files │ Knowledge │ Ingestion │ Dashboard │ SMS    │   │
+│  │    Auth │ Files │ Knowledge │ Ingestion │ Dashboard │ Msg    │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                                    │
@@ -382,7 +382,7 @@ STRIPE_SUCCESS_URL=
 STRIPE_CANCEL_URL=
 STRIPE_PORTAL_RETURN_URL=
 
-# Twilio (Inbound SMS)
+# Twilio (optional development fallback; production tenants configure their own)
 TWILIO_ACCOUNT_SID=your-twilio-account-sid
 TWILIO_AUTH_TOKEN=your-twilio-auth-token
 # Optional: outbound replies via Messaging Service
@@ -391,6 +391,11 @@ TWILIO_MESSAGING_SERVICE_SID=
 TWILIO_WEBHOOK_URL=https://your-public-url/api/sms/twilio
 TWILIO_STATUS_CALLBACK_URL=https://your-public-url/api/sms/twilio/status
 TWILIO_VALIDATE_SIGNATURE=true
+
+# Telegram booking webhook (optional development fallback; production tenants configure their own)
+TELEGRAM_BOT_TOKEN=123456:telegram-bot-token
+TELEGRAM_BOT_USERNAME=your_bot_username
+TELEGRAM_WEBHOOK_SECRET=use-a-long-random-secret
 
 # Phone normalization
 DEFAULT_PHONE_COUNTRY=US
@@ -501,27 +506,33 @@ Update payloads:
 | `POST` | `/api/billing/portal`            | Create Stripe billing portal   |
 | `POST` | `/api/billing/webhook`           | Stripe webhook endpoint        |
 
-### SMS (Twilio)
+### Messaging (SMS, WhatsApp, Telegram)
 
-| Method | Endpoint                 | Description                         |
-| ------ | ------------------------ | ----------------------------------- |
-| `POST` | `/api/sms/twilio`        | Twilio inbound SMS webhook (TwiML)  |
-| `POST` | `/api/sms/twilio/status` | Twilio SMS delivery status callback |
+| Method | Endpoint                   | Description                                 |
+| ------ | -------------------------- | ------------------------------------------- |
+| `POST` | `/api/sms/twilio`          | Twilio inbound SMS/WhatsApp webhook (TwiML) |
+| `POST` | `/api/sms/twilio/status`   | Twilio delivery status callback             |
+| `POST` | `/api/sms/telegram/:orgId` | Telegram bot webhook for an organization    |
 
 Notes:
 
 - Twilio sends `application/x-www-form-urlencoded` parameters and expects a TwiML response.
 - Signature validation uses `X-Twilio-Signature` and the full webhook URL.
-- Org matching is based on `orgs.phone` (recommended to store the Twilio number in E.164).
-- Inbound SMS auto-creates a client record for unknown phone numbers, stores the payload in `sms_messages`, appends a `USER` message to an SMS-scoped chat session in `chat_messages`, generates an AI reply, and sends it via Twilio API.
+- Each salon configures its own Twilio/WhatsApp and Telegram credentials in Organization settings. Environment credentials are only fallback values for development/shared test setups.
+- Org matching for Twilio SMS and WhatsApp is based on `orgs.phone` (recommended to store the tenant's Twilio number in E.164). WhatsApp payloads are detected from Twilio's `whatsapp:` address prefix.
+- Telegram webhooks are org-scoped by the `:orgId` URL segment and require the `X-Telegram-Bot-Api-Secret-Token` header to match that tenant's Telegram webhook secret.
+- Inbound messages auto-create a client record for unknown senders, store the payload in `sms_messages`, append a `USER` message to a channel-scoped chat session in `chat_messages`, generate an AI reply, and send it via Twilio or Telegram.
 - Outbound reply records are also stored in `sms_messages` with `direction = 'outbound'`.
 - Twilio delivery updates are applied through `/api/sms/twilio/status`.
 
 Setup checklist:
 
-- Set the organization phone in Settings (or via `PATCH /api/profile/org`) to the Twilio number.
-- Configure the Twilio Messaging webhook to `POST` to `/api/sms/twilio`.
+- Set the organization phone in Settings (or via `PATCH /api/profile/org`) to that salon's Twilio number.
+- Add that salon's Twilio Account SID, Auth Token, and optional Messaging Service SID in Organization settings.
+- Configure the Twilio SMS and WhatsApp Messaging webhook to `POST` to `/api/sms/twilio`.
 - For local dev or proxies, set `TWILIO_WEBHOOK_URL` so signature validation can compute the exact webhook URL.
+- Add that salon's Telegram bot token, username, and webhook secret in Organization settings.
+- Configure Telegram with `setWebhook` using `/api/sms/telegram/:orgId` and the same secret configured for that tenant.
 
 ### Files
 
@@ -637,24 +648,24 @@ Setup checklist:
 
 ### Key Tables
 
-| Table                   | Description                         |
-| ----------------------- | ----------------------------------- |
-| `orgs`                  | Organizations/workspaces            |
-| `users`                 | User accounts                       |
-| `roles`                 | Organization-scoped roles           |
-| `permissions`           | Granular permission keys            |
-| `memberships`           | User-Org associations               |
-| `files`                 | Uploaded file metadata              |
-| `folders`               | Hierarchical folder structure       |
-| `knowledge_bases`       | RAG document collections            |
-| `documents`             | Ingested documents                  |
-| `chunks`                | Text segments with token counts     |
-| `embeddings`            | Vector embeddings (1536 dimensions) |
-| `refresh_tokens`        | Token revocation tracking           |
-| `user_profiles`         | User profile details                |
-| `billing_customers`     | Stripe customer mapping             |
-| `billing_subscriptions` | Stripe subscription state           |
-| `sms_messages`          | Inbound SMS from Twilio             |
+| Table                   | Description                                           |
+| ----------------------- | ----------------------------------------------------- |
+| `orgs`                  | Organizations/workspaces                              |
+| `users`                 | User accounts                                         |
+| `roles`                 | Organization-scoped roles                             |
+| `permissions`           | Granular permission keys                              |
+| `memberships`           | User-Org associations                                 |
+| `files`                 | Uploaded file metadata                                |
+| `folders`               | Hierarchical folder structure                         |
+| `knowledge_bases`       | RAG document collections                              |
+| `documents`             | Ingested documents                                    |
+| `chunks`                | Text segments with token counts                       |
+| `embeddings`            | Vector embeddings (1536 dimensions)                   |
+| `refresh_tokens`        | Token revocation tracking                             |
+| `user_profiles`         | User profile details                                  |
+| `billing_customers`     | Stripe customer mapping                               |
+| `billing_subscriptions` | Stripe subscription state                             |
+| `sms_messages`          | Inbound/outbound SMS, WhatsApp, and Telegram messages |
 
 ---
 

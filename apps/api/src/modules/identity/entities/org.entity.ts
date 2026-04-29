@@ -26,6 +26,24 @@ export class Org extends BaseModel {
   @Column({ name: "working_hours_end", type: "time", default: "20:00" })
   workingHoursEnd!: string;
 
+  @Column({ name: "twilio_account_sid", type: "text", nullable: true })
+  twilioAccountSid!: string | null;
+
+  @Column({ name: "twilio_auth_token", type: "text", nullable: true })
+  twilioAuthToken!: string | null;
+
+  @Column({ name: "twilio_messaging_service_sid", type: "text", nullable: true })
+  twilioMessagingServiceSid!: string | null;
+
+  @Column({ name: "telegram_bot_token", type: "text", nullable: true })
+  telegramBotToken!: string | null;
+
+  @Column({ name: "telegram_bot_username", type: "text", nullable: true })
+  telegramBotUsername!: string | null;
+
+  @Column({ name: "telegram_webhook_secret", type: "text", nullable: true })
+  telegramWebhookSecret!: string | null;
+
   @OneToMany(() => Membership, (membership) => membership.org)
   memberships!: Membership[];
 

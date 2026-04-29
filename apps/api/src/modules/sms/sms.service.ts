@@ -1,6 +1,12 @@
-import { BadRequestException, ForbiddenException, Injectable } from "@nestjs/common";
+import {
+  BadGatewayException,
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+} from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { InjectDataSource, InjectRepository } from "@nestjs/typeorm";
+import crypto from "crypto";
 import type { Request } from "express";
 import { parsePhoneNumberFromString, type CountryCode } from "libphonenumber-js";
 import { InjectPinoLogger, PinoLogger } from "nestjs-pino";
@@ -15,10 +21,48 @@ import { Org } from "../identity/entities/org.entity";
 import { SmsMessage } from "./entities/sms-message.entity";
 
 const TWILIO_SIGNATURE_HEADER = "x-twilio-signature";
-const CHAT_SOURCE_SMS = "sms";
-const MAX_OUTBOUND_SMS_BODY = 1200;
+const TELEGRAM_SECRET_HEADER = "x-telegram-bot-api-secret-token";
+const MAX_OUTBOUND_MESSAGE_BODY = 1200;
 
 type TwilioWebhookEnvOverride = "TWILIO_WEBHOOK_URL" | "TWILIO_STATUS_CALLBACK_URL";
+type MessagingChannel = "sms" | "whatsapp" | "telegram";
+
+type ExistingMessagingSession = Pick<ChatSession, "id" | "clientId" | "title"> | null;
+
+type TwilioOrgConfig = Pick<
+  Org,
+  "id" | "phone" | "twilioAccountSid" | "twilioAuthToken" | "twilioMessagingServiceSid"
+>;
+
+type TelegramOrgConfig = Pick<
+  Org,
+  "id" | "telegramBotToken" | "telegramBotUsername" | "telegramWebhookSecret"
+>;
+
+type TelegramMessagePayload = {
+  message_id?: number | string;
+  text?: string;
+  caption?: string;
+  chat?: {
+    id?: number | string;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+    title?: string;
+    type?: string;
+  };
+  from?: {
+    id?: number | string;
+    username?: string;
+    first_name?: string;
+    last_name?: string;
+  };
+  photo?: unknown;
+  document?: unknown;
+  voice?: unknown;
+  audio?: unknown;
+  video?: unknown;
+};
 
 @Injectable()
 export class SmsService {
@@ -40,7 +84,7 @@ export class SmsService {
       return null;
     }
 
-    const trimmed = raw.trim();
+    const trimmed = this.stripTwilioChannelPrefix(raw).trim();
     if (!trimmed) {
       return null;
     }
@@ -66,9 +110,18 @@ export class SmsService {
     return `+${digits}`;
   }
 
+  private stripTwilioChannelPrefix(raw?: string | null) {
+    const trimmed = raw?.trim() || "";
+    const whatsappPrefix = "whatsapp:";
+    if (trimmed.toLowerCase().startsWith(whatsappPrefix)) {
+      return trimmed.slice(whatsappPrefix.length);
+    }
+    return trimmed;
+  }
+
   private getPhoneCandidates(raw?: string | null, country?: string | null) {
     const candidates = new Set<string>();
-    const trimmed = raw?.trim();
+    const trimmed = this.stripTwilioChannelPrefix(raw).trim();
     if (trimmed) {
       candidates.add(trimmed);
     }
@@ -81,7 +134,7 @@ export class SmsService {
       }
     }
 
-    const digits = raw ? raw.replace(/\D/g, "") : "";
+    const digits = trimmed ? trimmed.replace(/\D/g, "") : "";
     if (digits) {
       candidates.add(digits);
       candidates.add(`+${digits}`);
@@ -181,15 +234,16 @@ export class SmsService {
     req: Request,
     payload: Record<string, unknown>,
     overrideKey?: TwilioWebhookEnvOverride,
+    authTokenOverride?: string | null,
   ) {
     const validate = this.config.get<string>("TWILIO_VALIDATE_SIGNATURE");
     if (validate && validate.toLowerCase() === "false") {
       return;
     }
 
-    const authToken = this.config.get<string>("TWILIO_AUTH_TOKEN");
+    const authToken = authTokenOverride?.trim() || this.config.get<string>("TWILIO_AUTH_TOKEN");
     if (!authToken) {
-      throw new BadRequestException("TWILIO_AUTH_TOKEN is not configured");
+      throw new BadRequestException("Twilio auth token is not configured for this organization");
     }
 
     const signatureHeader = req.headers[TWILIO_SIGNATURE_HEADER];
@@ -254,13 +308,33 @@ export class SmsService {
     return { numMedia, media: media.length ? media : null };
   }
 
-  private buildClientName(fromNumber: string) {
-    const digits = fromNumber.replace(/\D/g, "");
+  private buildClientName(
+    channel: MessagingChannel,
+    fromAddress: string,
+    displayName?: string | null,
+  ) {
+    const label = displayName?.trim();
+    if (label) {
+      return label.slice(0, 120);
+    }
+
+    const digits = fromAddress.replace(/\D/g, "");
     const suffix = digits ? digits.slice(-4) : "client";
-    return `SMS Client ${suffix}`;
+    return `${this.formatChannelLabel(channel)} Client ${suffix}`;
   }
 
-  private buildInboundChatContent(body: string, numMedia: number) {
+  private formatChannelLabel(channel: MessagingChannel) {
+    switch (channel) {
+      case "whatsapp":
+        return "WhatsApp";
+      case "telegram":
+        return "Telegram";
+      default:
+        return "SMS";
+    }
+  }
+
+  private buildInboundChatContent(body: string, numMedia: number, channel: MessagingChannel) {
     const trimmed = body.trim();
     if (trimmed) {
       return trimmed;
@@ -268,7 +342,7 @@ export class SmsService {
     if (numMedia > 0) {
       return "[Media message]";
     }
-    return "[Empty SMS]";
+    return `[Empty ${this.formatChannelLabel(channel)} message]`;
   }
 
   private normalizeOutboundBody(content: string) {
@@ -276,19 +350,19 @@ export class SmsService {
     if (!trimmed) {
       return "";
     }
-    if (trimmed.length <= MAX_OUTBOUND_SMS_BODY) {
+    if (trimmed.length <= MAX_OUTBOUND_MESSAGE_BODY) {
       return trimmed;
     }
-    return `${trimmed.slice(0, MAX_OUTBOUND_SMS_BODY - 3)}...`;
+    return `${trimmed.slice(0, MAX_OUTBOUND_MESSAGE_BODY - 3)}...`;
   }
 
-  private buildSmsThreadKey(fromNumber: string) {
-    return fromNumber.trim();
+  private buildThreadKey(channel: MessagingChannel, fromAddress: string) {
+    return channel === "sms" ? fromAddress.trim() : `${channel}:${fromAddress.trim()}`;
   }
 
-  private buildSmsSessionTitle(clientName: string, fromNumber: string) {
-    const label = clientName?.trim() || fromNumber;
-    return `SMS - ${label}`.slice(0, 120);
+  private buildSessionTitle(channel: MessagingChannel, clientName: string, fromAddress: string) {
+    const label = clientName?.trim() || fromAddress;
+    return `${this.formatChannelLabel(channel)} - ${label}`.slice(0, 120);
   }
 
   private isUniqueViolation(error: unknown) {
@@ -299,16 +373,22 @@ export class SmsService {
     return dbError.code === "23505";
   }
 
-  private getTwilioClient(accountSidHint?: string | null) {
-    const authToken = this.config.get<string>("TWILIO_AUTH_TOKEN");
+  private getTwilioClient(input: {
+    accountSidHint?: string | null;
+    accountSidOverride?: string | null;
+    authTokenOverride?: string | null;
+  }) {
+    const authToken =
+      input.authTokenOverride?.trim() || this.config.get<string>("TWILIO_AUTH_TOKEN");
     if (!authToken) {
-      throw new BadRequestException("TWILIO_AUTH_TOKEN is not configured");
+      throw new BadRequestException("Twilio auth token is not configured for this organization");
     }
 
     const configuredAccountSid = this.config.get<string>("TWILIO_ACCOUNT_SID")?.trim();
-    const accountSid = configuredAccountSid || accountSidHint?.trim();
+    const accountSid =
+      input.accountSidOverride?.trim() || configuredAccountSid || input.accountSidHint?.trim();
     if (!accountSid) {
-      throw new BadRequestException("TWILIO_ACCOUNT_SID is not configured");
+      throw new BadRequestException("Twilio account SID is not configured for this organization");
     }
 
     return {
@@ -317,16 +397,81 @@ export class SmsService {
     };
   }
 
+  private formatTwilioAddress(channel: MessagingChannel, value: string) {
+    const normalized = this.normalizePhone(value) || this.stripTwilioChannelPrefix(value).trim();
+    if (channel === "whatsapp") {
+      return normalized.toLowerCase().startsWith("whatsapp:")
+        ? normalized
+        : `whatsapp:${normalized}`;
+    }
+    return normalized;
+  }
+
+  private async sendTelegramMessage(orgId: string, chatId: string, content: string) {
+    const org = await this.orgRepo.findOne({
+      where: { id: orgId },
+      select: {
+        id: true,
+        telegramBotToken: true,
+      },
+    });
+    const botToken =
+      org?.telegramBotToken?.trim() || this.config.get<string>("TELEGRAM_BOT_TOKEN")?.trim();
+    if (!botToken) {
+      throw new BadRequestException("Telegram bot token is not configured for this organization");
+    }
+
+    const response = await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: content,
+      }),
+    });
+
+    const responseBody = (await response.json().catch(() => null)) as {
+      ok?: boolean;
+      result?: { message_id?: number | string };
+      description?: string;
+    } | null;
+
+    if (!response.ok || responseBody?.ok === false) {
+      throw new BadGatewayException(
+        responseBody?.description || `Telegram sendMessage failed with ${response.status}`,
+      );
+    }
+
+    return responseBody?.result ?? {};
+  }
+
   private async findOrCreateClient(
     manager: EntityManager,
-    orgId: string,
-    fromNumber: string,
-    fromCountry?: string | null,
+    input: {
+      orgId: string;
+      channel: MessagingChannel;
+      fromAddress: string;
+      fromCountry?: string | null;
+      displayName?: string | null;
+      existingClientId?: string | null;
+    },
   ) {
-    const candidates = this.getPhoneCandidates(fromNumber, fromCountry);
-    if (candidates.length) {
+    if (input.existingClientId) {
+      const existingClient = await manager.getRepository(Client).findOne({
+        where: { id: input.existingClientId, orgId: input.orgId },
+      });
+      if (existingClient) {
+        return existingClient;
+      }
+    }
+
+    const shouldLookupByPhone = input.channel === "sms" || input.channel === "whatsapp";
+    const candidates = shouldLookupByPhone
+      ? this.getPhoneCandidates(input.fromAddress, input.fromCountry)
+      : [];
+    if (shouldLookupByPhone && candidates.length) {
       const existing = await manager.getRepository(Client).findOne({
-        where: candidates.map((phone) => ({ orgId, phone })),
+        where: candidates.map((phone) => ({ orgId: input.orgId, phone })),
       });
       if (existing) {
         return existing;
@@ -334,52 +479,76 @@ export class SmsService {
     }
 
     const client = manager.getRepository(Client).create({
-      orgId,
-      name: this.buildClientName(fromNumber),
-      phone: fromNumber,
+      orgId: input.orgId,
+      name: this.buildClientName(input.channel, input.fromAddress, input.displayName),
+      phone: shouldLookupByPhone ? input.fromAddress : null,
       email: null,
-      notes: "Created from inbound SMS",
+      notes: `Created from inbound ${this.formatChannelLabel(input.channel)}`,
       isWalkIn: false,
     });
     return manager.getRepository(Client).save(client);
   }
 
-  private async findOrCreateSmsSession(
+  private async findMessagingSession(
     manager: EntityManager,
     orgId: string,
+    source: MessagingChannel,
+    externalThreadKey: string,
+  ): Promise<ExistingMessagingSession> {
+    return manager.getRepository(ChatSession).findOne({
+      where: {
+        orgId,
+        source,
+        externalThreadKey,
+      },
+      select: {
+        id: true,
+        clientId: true,
+        title: true,
+      },
+    });
+  }
+
+  private async findOrCreateMessagingSession(
+    manager: EntityManager,
+    orgId: string,
+    source: MessagingChannel,
     externalThreadKey: string,
     clientId: string | null,
     title: string,
+    existing?: ExistingMessagingSession,
   ) {
     const sessionRepo = manager.getRepository(ChatSession);
-    const existing = await sessionRepo.findOne({
-      where: {
-        orgId,
-        source: CHAT_SOURCE_SMS,
-        externalThreadKey,
-      },
-    });
+    const current =
+      existing ??
+      (await sessionRepo.findOne({
+        where: {
+          orgId,
+          source,
+          externalThreadKey,
+        },
+      }));
 
-    if (existing) {
+    if (current) {
       const updates: { updatedAt: Date; clientId?: string | null; title?: string } = {
         updatedAt: new Date(),
       };
-      if (clientId && existing.clientId !== clientId) {
+      if (clientId && current.clientId !== clientId) {
         updates.clientId = clientId;
       }
-      if (!existing.title) {
+      if (!current.title) {
         updates.title = title;
       }
 
-      await sessionRepo.update({ id: existing.id, orgId }, updates);
+      await sessionRepo.update({ id: current.id, orgId }, updates);
 
-      return existing;
+      return current;
     }
 
     const session = sessionRepo.create({
       orgId,
       userId: null,
-      source: CHAT_SOURCE_SMS,
+      source,
       externalThreadKey,
       clientId,
       title,
@@ -394,7 +563,7 @@ export class SmsService {
       const collided = await sessionRepo.findOne({
         where: {
           orgId,
-          source: CHAT_SOURCE_SMS,
+          source,
           externalThreadKey,
         },
       });
@@ -409,6 +578,7 @@ export class SmsService {
     orgId: string;
     sessionId: string;
     clientId: string | null;
+    channel: MessagingChannel;
     toNumber: string;
     fromNumber: string;
     replyToMessageSid: string;
@@ -420,11 +590,64 @@ export class SmsService {
       return;
     }
 
-    const to = this.normalizePhone(input.toNumber) || input.toNumber.trim();
-    const from = this.normalizePhone(input.fromNumber) || input.fromNumber.trim();
-    const messagingServiceSid = this.config.get<string>("TWILIO_MESSAGING_SERVICE_SID")?.trim();
+    if (input.channel === "telegram") {
+      const telegramMessage = await this.sendTelegramMessage(input.orgId, input.toNumber, body);
+      const messageId = telegramMessage.message_id
+        ? String(telegramMessage.message_id)
+        : crypto.randomUUID();
+      const outboundRecord = this.smsRepo.create({
+        orgId: input.orgId,
+        fromNumber: input.fromNumber,
+        toNumber: input.toNumber,
+        channel: input.channel,
+        clientId: input.clientId,
+        body,
+        messageSid: `telegram:${input.orgId}:${input.toNumber}:${messageId}:outbound`,
+        accountSid: this.config.get<string>("TELEGRAM_BOT_USERNAME")?.trim() || "telegram",
+        messagingServiceSid: null,
+        smsStatus: "sent",
+        direction: "outbound",
+        responseToMessageSid: input.replyToMessageSid,
+        errorMessage: null,
+        numMedia: 0,
+        media: null,
+        rawPayload: {
+          outbound: telegramMessage,
+          sessionId: input.sessionId,
+          replyToMessageSid: input.replyToMessageSid,
+        },
+      });
+
+      try {
+        await this.smsRepo.save(outboundRecord);
+      } catch (error) {
+        if (!this.isUniqueViolation(error)) {
+          throw error;
+        }
+      }
+      return;
+    }
+
+    const to = this.formatTwilioAddress(input.channel, input.toNumber);
+    const from = this.formatTwilioAddress(input.channel, input.fromNumber);
+    const org = await this.orgRepo.findOne({
+      where: { id: input.orgId },
+      select: {
+        id: true,
+        twilioAccountSid: true,
+        twilioAuthToken: true,
+        twilioMessagingServiceSid: true,
+      },
+    });
+    const messagingServiceSid =
+      org?.twilioMessagingServiceSid?.trim() ||
+      this.config.get<string>("TWILIO_MESSAGING_SERVICE_SID")?.trim();
     const statusCallback = this.buildStatusCallbackUrl();
-    const { client, accountSid } = this.getTwilioClient(input.accountSidHint);
+    const { client, accountSid } = this.getTwilioClient({
+      accountSidHint: input.accountSidHint,
+      accountSidOverride: org?.twilioAccountSid,
+      authTokenOverride: org?.twilioAuthToken,
+    });
 
     const createPayload: Record<string, string> = {
       to,
@@ -447,6 +670,7 @@ export class SmsService {
       orgId: input.orgId,
       fromNumber: from,
       toNumber: to,
+      channel: input.channel,
       clientId: input.clientId,
       body,
       messageSid: outbound.sid,
@@ -483,9 +707,240 @@ export class SmsService {
     }
   }
 
-  async handleIncomingTwilio(payload: Record<string, unknown>, req: Request) {
-    this.validateTwilioSignature(req, payload, "TWILIO_WEBHOOK_URL");
+  private detectTwilioChannel(fromRaw: string, toRaw: string): MessagingChannel {
+    const hasWhatsAppPrefix = [fromRaw, toRaw].some((value) =>
+      value.trim().toLowerCase().startsWith("whatsapp:"),
+    );
+    return hasWhatsAppPrefix ? "whatsapp" : "sms";
+  }
 
+  private validateTelegramSecret(req: Request, secretOverride?: string | null) {
+    const expected =
+      secretOverride?.trim() || this.config.get<string>("TELEGRAM_WEBHOOK_SECRET")?.trim();
+    if (!expected) {
+      throw new BadRequestException(
+        "Telegram webhook secret is not configured for this organization",
+      );
+    }
+
+    const header = req.headers[TELEGRAM_SECRET_HEADER];
+    const actual = Array.isArray(header) ? header[0] : header;
+    if (!actual || actual !== expected) {
+      throw new ForbiddenException("Invalid Telegram webhook secret");
+    }
+  }
+
+  private getTelegramMessage(payload: Record<string, unknown>): TelegramMessagePayload | null {
+    const message = payload.message ?? payload.edited_message;
+    if (!message || typeof message !== "object") {
+      return null;
+    }
+    return message as TelegramMessagePayload;
+  }
+
+  private getTelegramDisplayName(message: TelegramMessagePayload) {
+    const source = message.from ?? message.chat;
+    const parts = [source?.first_name, source?.last_name].filter(Boolean);
+    const name = parts.join(" ").trim();
+    if (name) {
+      return name;
+    }
+    if (source?.username) {
+      return `@${source.username}`;
+    }
+    if (message.chat?.title) {
+      return message.chat.title;
+    }
+    return null;
+  }
+
+  private extractTelegramMedia(message: TelegramMessagePayload) {
+    const media: Array<{ url: string; contentType?: string }> = [];
+    const mediaFields: Array<[keyof TelegramMessagePayload, string]> = [
+      ["photo", "photo"],
+      ["document", "document"],
+      ["voice", "voice"],
+      ["audio", "audio"],
+      ["video", "video"],
+    ];
+
+    for (const [field, contentType] of mediaFields) {
+      if (message[field]) {
+        media.push({ url: `telegram:${String(field)}`, contentType });
+      }
+    }
+
+    return { numMedia: media.length, media: media.length ? media : null };
+  }
+
+  private async processIncomingMessage(input: {
+    orgId: string;
+    channel: MessagingChannel;
+    provider: string;
+    fromAddress: string;
+    toAddress: string;
+    body: string;
+    messageSid: string;
+    accountSid: string;
+    messagingServiceSid: string | null;
+    status: string | null;
+    fromCountry?: string | null;
+    numMedia: number;
+    media: Array<{ url: string; contentType?: string }> | null;
+    rawPayload: Record<string, unknown>;
+    displayName?: string | null;
+  }) {
+    const existing = await this.smsRepo.findOne({ where: { messageSid: input.messageSid } });
+    if (existing) {
+      return { handled: true, messageId: existing.id, duplicate: true };
+    }
+
+    const inboundContent = this.buildInboundChatContent(input.body, input.numMedia, input.channel);
+
+    try {
+      const result = await this.dataSource.transaction(async (manager) => {
+        const threadKey = this.buildThreadKey(input.channel, input.fromAddress);
+        const existingSession = await this.findMessagingSession(
+          manager,
+          input.orgId,
+          input.channel,
+          threadKey,
+        );
+        const client = await this.findOrCreateClient(manager, {
+          orgId: input.orgId,
+          channel: input.channel,
+          fromAddress: input.fromAddress,
+          fromCountry: input.fromCountry,
+          displayName: input.displayName,
+          existingClientId: existingSession?.clientId ?? null,
+        });
+
+        const messageEntity = manager.getRepository(SmsMessage).create({
+          orgId: input.orgId,
+          fromNumber: input.fromAddress,
+          toNumber: input.toAddress,
+          channel: input.channel,
+          clientId: client?.id ?? null,
+          body: input.body,
+          messageSid: input.messageSid,
+          accountSid: input.accountSid,
+          messagingServiceSid: input.messagingServiceSid,
+          smsStatus: input.status,
+          direction: "inbound",
+          responseToMessageSid: null,
+          errorMessage: null,
+          numMedia: input.numMedia,
+          media: input.media,
+          rawPayload: input.rawPayload,
+        });
+
+        const savedMessage = await manager.getRepository(SmsMessage).save(messageEntity);
+        const sessionTitle = this.buildSessionTitle(input.channel, client.name, input.fromAddress);
+
+        const session = await this.findOrCreateMessagingSession(
+          manager,
+          input.orgId,
+          input.channel,
+          threadKey,
+          client?.id ?? null,
+          sessionTitle,
+          existingSession,
+        );
+
+        const chatMessage = manager.getRepository(ChatMessage).create({
+          sessionId: session.id,
+          role: ChatRole.User,
+          content: inboundContent,
+          metadata: {
+            channel: input.channel,
+            provider: input.provider,
+            direction: "inbound",
+            orgId: input.orgId,
+            clientId: client?.id ?? null,
+            smsMessageId: savedMessage.id,
+            messageSid: input.messageSid,
+            accountSid: input.accountSid,
+            messagingServiceSid: input.messagingServiceSid,
+            smsStatus: input.status,
+            fromNumber: input.fromAddress,
+            toNumber: input.toAddress,
+            numMedia: input.numMedia,
+            media: input.media,
+          },
+        });
+
+        await manager.getRepository(ChatMessage).save(chatMessage);
+
+        await manager
+          .getRepository(ChatSession)
+          .update({ id: session.id, orgId: input.orgId }, { updatedAt: new Date() });
+
+        return {
+          messageId: savedMessage.id,
+          sessionId: session.id,
+          userChatMessageId: chatMessage.id,
+          clientId: client?.id ?? null,
+          outboundToNumber: input.fromAddress,
+          outboundFromNumber: input.toAddress,
+        };
+      });
+
+      void this.chatService
+        .ask(
+          result.sessionId,
+          null,
+          input.orgId,
+          { question: inboundContent },
+          {
+            skipOwnershipCheck: true,
+            persistUserMessage: false,
+            existingUserMessageId: result.userChatMessageId,
+          },
+        )
+        .then(async (chatResponse) => {
+          const assistantContent = chatResponse.assistantMessage?.content?.trim() || "";
+          if (!assistantContent) {
+            return;
+          }
+
+          await this.sendAssistantReply({
+            orgId: input.orgId,
+            sessionId: result.sessionId,
+            clientId: result.clientId,
+            channel: input.channel,
+            toNumber: result.outboundToNumber,
+            fromNumber: result.outboundFromNumber,
+            replyToMessageSid: input.messageSid,
+            accountSidHint: input.accountSid || null,
+            content: assistantContent,
+          });
+        })
+        .catch((error) => {
+          this.logger.error(
+            {
+              orgId: input.orgId,
+              sessionId: result.sessionId,
+              messageSid: input.messageSid,
+              channel: input.channel,
+              error: error instanceof Error ? error.message : String(error),
+            },
+            "Failed to trigger messaging assistant response",
+          );
+        });
+
+      return { handled: true, messageId: result.messageId };
+    } catch (error) {
+      if (this.isUniqueViolation(error)) {
+        const duplicate = await this.smsRepo.findOne({ where: { messageSid: input.messageSid } });
+        if (duplicate) {
+          return { handled: true, messageId: duplicate.id, duplicate: true };
+        }
+      }
+      throw error;
+    }
+  }
+
+  async handleIncomingTwilio(payload: Record<string, unknown>, req: Request) {
     const toNumberRaw = payload.To ? String(payload.To) : "";
     const fromNumberRaw = payload.From ? String(payload.From) : "";
     const body = payload.Body ? String(payload.Body) : "";
@@ -501,6 +956,7 @@ export class SmsService {
     const smsStatus = payload.SmsStatus ? String(payload.SmsStatus) : null;
     const toCountry = payload.ToCountry ? String(payload.ToCountry) : null;
     const fromCountry = payload.FromCountry ? String(payload.FromCountry) : null;
+    const channel = this.detectTwilioChannel(fromNumberRaw, toNumberRaw);
 
     if (!messageSid || !toNumberRaw || !fromNumberRaw) {
       throw new BadRequestException("Missing required SMS fields");
@@ -515,10 +971,16 @@ export class SmsService {
       return { handled: false };
     }
 
-    const matchingOrgs = await this.orgRepo.find({
+    const matchingOrgs = (await this.orgRepo.find({
       where: orgCandidates.map((phone) => ({ phone })),
-      select: { id: true, phone: true },
-    });
+      select: {
+        id: true,
+        phone: true,
+        twilioAccountSid: true,
+        twilioAuthToken: true,
+        twilioMessagingServiceSid: true,
+      },
+    })) as TwilioOrgConfig[];
 
     if (matchingOrgs.length !== 1) {
       this.logger.warn(
@@ -529,144 +991,97 @@ export class SmsService {
     }
 
     const org = matchingOrgs[0];
-
-    const existing = await this.smsRepo.findOne({ where: { messageSid } });
-    if (existing) {
-      return { handled: true, messageId: existing.id, duplicate: true };
-    }
-
-    const { numMedia, media } = this.extractMedia(payload);
-    const inboundContent = this.buildInboundChatContent(body, numMedia);
-
-    try {
-      const result = await this.dataSource.transaction(async (manager) => {
-        const client = await this.findOrCreateClient(manager, org.id, fromNumber, fromCountry);
-
-        const smsEntity = manager.getRepository(SmsMessage).create({
+    if (org.twilioAccountSid?.trim() && accountSid && org.twilioAccountSid.trim() !== accountSid) {
+      this.logger.warn(
+        {
           orgId: org.id,
-          fromNumber,
-          toNumber,
-          clientId: client?.id ?? null,
-          body,
           messageSid,
           accountSid,
-          messagingServiceSid,
-          smsStatus,
-          direction: "inbound",
-          responseToMessageSid: null,
-          errorMessage: null,
-          numMedia,
-          media,
-          rawPayload: payload,
-        });
-
-        const savedSms = await manager.getRepository(SmsMessage).save(smsEntity);
-
-        const threadKey = this.buildSmsThreadKey(fromNumber);
-        const sessionTitle = this.buildSmsSessionTitle(client.name, fromNumber);
-
-        const session = await this.findOrCreateSmsSession(
-          manager,
-          org.id,
-          threadKey,
-          client?.id ?? null,
-          sessionTitle,
-        );
-
-        const chatMessage = manager.getRepository(ChatMessage).create({
-          sessionId: session.id,
-          role: ChatRole.User,
-          content: inboundContent,
-          metadata: {
-            channel: "sms",
-            provider: "twilio",
-            direction: "inbound",
-            orgId: org.id,
-            clientId: client?.id ?? null,
-            smsMessageId: savedSms.id,
-            messageSid,
-            accountSid,
-            messagingServiceSid,
-            smsStatus,
-            fromNumber,
-            toNumber,
-            numMedia,
-            media,
-          },
-        });
-
-        await manager.getRepository(ChatMessage).save(chatMessage);
-
-        await manager
-          .getRepository(ChatSession)
-          .update({ id: session.id, orgId: org.id }, { updatedAt: new Date() });
-
-        return {
-          smsMessageId: savedSms.id,
-          sessionId: session.id,
-          userChatMessageId: chatMessage.id,
-          clientId: client?.id ?? null,
-          outboundToNumber: fromNumber,
-          outboundFromNumber: toNumber,
-        };
-      });
-
-      void this.chatService
-        .ask(
-          result.sessionId,
-          null,
-          org.id,
-          { question: inboundContent },
-          {
-            skipOwnershipCheck: true,
-            persistUserMessage: false,
-            existingUserMessageId: result.userChatMessageId,
-          },
-        )
-        .then(async (chatResponse) => {
-          const assistantContent = chatResponse.assistantMessage?.content?.trim() || "";
-          if (!assistantContent) {
-            return;
-          }
-
-          await this.sendAssistantReply({
-            orgId: org.id,
-            sessionId: result.sessionId,
-            clientId: result.clientId,
-            toNumber: result.outboundToNumber,
-            fromNumber: result.outboundFromNumber,
-            replyToMessageSid: messageSid,
-            accountSidHint: accountSid || null,
-            content: assistantContent,
-          });
-        })
-        .catch((error) => {
-          this.logger.error(
-            {
-              orgId: org.id,
-              sessionId: result.sessionId,
-              messageSid,
-              error: error instanceof Error ? error.message : String(error),
-            },
-            "Failed to trigger SMS assistant response",
-          );
-        });
-
-      return { handled: true, messageId: result.smsMessageId };
-    } catch (error) {
-      if (this.isUniqueViolation(error)) {
-        const duplicate = await this.smsRepo.findOne({ where: { messageSid } });
-        if (duplicate) {
-          return { handled: true, messageId: duplicate.id, duplicate: true };
-        }
-      }
-      throw error;
+          configuredAccountSid: org.twilioAccountSid,
+        },
+        "Inbound Twilio message account SID does not match organization configuration",
+      );
+      return { handled: false };
     }
+
+    this.validateTwilioSignature(req, payload, "TWILIO_WEBHOOK_URL", org.twilioAuthToken);
+
+    const { numMedia, media } = this.extractMedia(payload);
+    return this.processIncomingMessage({
+      orgId: org.id,
+      channel,
+      provider: "twilio",
+      fromAddress: fromNumber,
+      toAddress: toNumber,
+      body,
+      messageSid,
+      accountSid,
+      messagingServiceSid,
+      status: smsStatus,
+      fromCountry,
+      numMedia,
+      media,
+      rawPayload: payload,
+    });
+  }
+
+  async handleIncomingTelegram(orgId: string, payload: Record<string, unknown>, req: Request) {
+    if (!orgId) {
+      throw new BadRequestException("Organization is required");
+    }
+
+    const org = (await this.orgRepo.findOne({
+      where: { id: orgId },
+      select: {
+        id: true,
+        telegramBotToken: true,
+        telegramBotUsername: true,
+        telegramWebhookSecret: true,
+      },
+    })) as TelegramOrgConfig | null;
+    if (!org) {
+      this.logger.warn({ orgId }, "Telegram webhook did not match an organization");
+      return { handled: false };
+    }
+
+    this.validateTelegramSecret(req, org.telegramWebhookSecret);
+
+    const message = this.getTelegramMessage(payload);
+    if (!message?.chat?.id || !message.message_id) {
+      return { handled: false };
+    }
+
+    const chatId = String(message.chat.id);
+    const body = message.text
+      ? String(message.text)
+      : message.caption
+        ? String(message.caption)
+        : "";
+    const messageSid = `telegram:${org.id}:${chatId}:${String(message.message_id)}`;
+    const botUsername =
+      org.telegramBotUsername?.trim() || this.config.get<string>("TELEGRAM_BOT_USERNAME")?.trim();
+    const toAddress = botUsername ? `telegram:${botUsername}` : "telegram:bot";
+    const { numMedia, media } = this.extractTelegramMedia(message);
+
+    return this.processIncomingMessage({
+      orgId: org.id,
+      channel: "telegram",
+      provider: "telegram",
+      fromAddress: chatId,
+      toAddress,
+      body,
+      messageSid,
+      accountSid: botUsername || "telegram",
+      messagingServiceSid: null,
+      status: null,
+      numMedia,
+      media,
+      rawPayload: payload,
+      displayName: this.getTelegramDisplayName(message),
+    });
   }
 
   async handleTwilioStatusCallback(payload: Record<string, unknown>, req: Request) {
-    this.validateTwilioSignature(req, payload, "TWILIO_STATUS_CALLBACK_URL");
-
     const messageSid = payload.MessageSid
       ? String(payload.MessageSid)
       : payload.SmsSid
@@ -687,6 +1102,34 @@ export class SmsService {
       this.logger.warn({ messageSid }, "Twilio status callback did not match any SMS message");
       return { handled: false };
     }
+
+    const org = (await this.orgRepo.findOne({
+      where: { id: existing.orgId },
+      select: {
+        id: true,
+        twilioAccountSid: true,
+        twilioAuthToken: true,
+      },
+    })) as Pick<Org, "id" | "twilioAccountSid" | "twilioAuthToken"> | null;
+    const payloadAccountSid = payload.AccountSid ? String(payload.AccountSid) : "";
+    if (
+      org?.twilioAccountSid?.trim() &&
+      payloadAccountSid &&
+      org.twilioAccountSid.trim() !== payloadAccountSid
+    ) {
+      this.logger.warn(
+        {
+          orgId: existing.orgId,
+          messageSid,
+          accountSid: payloadAccountSid,
+          configuredAccountSid: org.twilioAccountSid,
+        },
+        "Twilio status callback account SID does not match organization configuration",
+      );
+      return { handled: false };
+    }
+
+    this.validateTwilioSignature(req, payload, "TWILIO_STATUS_CALLBACK_URL", org?.twilioAuthToken);
 
     const errorCode = payload.ErrorCode ? String(payload.ErrorCode) : null;
     const errorMessage = payload.ErrorMessage ? String(payload.ErrorMessage) : null;

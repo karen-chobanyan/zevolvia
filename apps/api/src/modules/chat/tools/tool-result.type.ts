@@ -7,4 +7,5 @@ export type ToolResult = {
 export type ToolExecutionContext = {
   readonly orgId: string;
   readonly timeZone?: string;
+  readonly source?: string;
 };
